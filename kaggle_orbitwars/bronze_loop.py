@@ -106,4 +106,15 @@ while True:
               f"top1%~{top1}(~{all_scores[top1-1]:.0f}) best={best:.1f} "
               f"our_top3={[round(x,1) for x in top3]}", flush=True)
     save_state(st)
+    # consolidated: also retry the neurogolf 6353 submit once per cycle until it lands
+    ng_zip = "/home/user/transformer_poc/neurogolf/itertrunc/submission_final.zip"
+    ng_flag = "/tmp/ng6353_done"
+    if not os.path.exists(ng_flag) and os.path.exists(ng_zip):
+        r = subprocess.run(["python3", "-m", "kaggle", "competitions", "submit",
+                            "neurogolf-2026", "-f", ng_zip, "-m", "DCE+CSE lossless 6353.47"],
+                           capture_output=True, text=True)
+        if "Successfully submitted" in (r.stdout + r.stderr):
+            open(ng_flag, "w").write("done")
+            print("LOOP[NEUROGOLF_6353_SUBMITTED] best valid locked in", flush=True)
     time.sleep(600)
+
