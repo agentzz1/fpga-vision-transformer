@@ -106,15 +106,36 @@ while True:
               f"top1%~{top1}(~{all_scores[top1-1]:.0f}) best={best:.1f} "
               f"our_top3={[round(x,1) for x in top3]}", flush=True)
     save_state(st)
-    # consolidated: also retry the neurogolf 6353 submit once per cycle until it lands
-    ng_zip = "/home/user/transformer_poc/neurogolf/itertrunc/submission_final.zip"
-    ng_flag = "/tmp/ng6353_done"
-    if not os.path.exists(ng_flag) and os.path.exists(ng_zip):
-        r = subprocess.run(["python3", "-m", "kaggle", "competitions", "submit",
-                            "neurogolf-2026", "-f", ng_zip, "-m", "DCE+CSE lossless 6353.47"],
-                           capture_output=True, text=True)
-        if "Successfully submitted" in (r.stdout + r.stderr):
-            open(ng_flag, "w").write("done")
-            print("LOOP[NEUROGOLF_6353_SUBMITTED] best valid locked in", flush=True)
+    # OVERNIGHT AUTOSUBMIT: any *.zip dropped in autosubmit/ gets submitted once to
+    # neurogolf (correct submission/ format assumed). Tracked by a .submitted marker.
+    asd = "/home/user/transformer_poc/neurogolf/autosubmit"
+    try:
+        if os.path.isdir(asd):
+            for z in sorted(glob.glob(asd + "/*.zip")):
+                mark = z + ".submitted"
+                if os.path.exists(mark):
+                    continue
+                r = subprocess.run(["python3", "-m", "kaggle", "competitions", "submit",
+                                    "neurogolf-2026", "-f", z, "-m", os.path.basename(z)],
+                                   capture_output=True, text=True)
+                if "Successfully submitted" in (r.stdout + r.stderr):
+                    open(mark, "w").write("done")
+                    print(f"LOOP[NEUROGOLF_AUTOSUBMIT] {os.path.basename(z)} submitted", flush=True)
+                    time.sleep(45)  # let it register
+    except Exception:
+        pass
+    # report current neurogolf best score each cycle (overnight progress)
+    try:
+        out = subprocess.run(["python3", "-m", "kaggle", "competitions", "submissions",
+                              "neurogolf-2026"], capture_output=True, text=True).stdout
+        ng = max([float(m.group(1)) for ln in out.splitlines()
+                  if (m := re.search(r"COMPLETE\s+([0-9]+\.[0-9]+)", ln))] + [0.0])
+        ngf = "/tmp/ng_best"; prev = float(open(ngf).read()) if os.path.exists(ngf) else 0.0
+        if ng - prev >= 5:
+            tag = "BRONZE!" if ng >= 6394 else ("SILVER!" if ng >= 6608 else "")
+            print(f"LOOP[NEUROGOLF_SCORE] {ng} (was {prev:.1f}) {tag}", flush=True)
+            open(ngf, "w").write(str(ng))
+    except Exception:
+        pass
     time.sleep(600)
 
