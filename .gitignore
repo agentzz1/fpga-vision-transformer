@@ -69,3 +69,6 @@ neurogolf/
 aisec_eval_A/
 aisec_eval_B/
 aisec_eval_C/
+ng_datasets/
+ng_forum/
+ng_heavy/
