@@ -162,3 +162,20 @@ caoyupeng's full proven 32.71 mass-shift notebook verbatim under our kernel-meta
 (agentzz/ai-sec-attack-submission, gpu/net=false), pushed + submitting. Score formula:
 (Sum SEVERITY_W + 2*unique_cells)/200000*1000, SEVERITY_W={1:1,2:2,3:4,4:8,5:16},
 cap 1000; LB is volume of DISTINCT replay-surviving predicate hits.
+
+## 2026-06-14 ai-security SILVER confirmed + Nemotron safety
+ai-security: adopted mass-shift engine scored 32.68 public -> rank ~16/440 = SILVER
+(silver cut rank 22 @28.41; gold cut rank 10 @34.80; bronze rank 44 @27.39). Floor
+locked (Kaggle counts best sub). Pushing toward gold (+2.12) via the untapped 2nd
+severity-5 predicate UNTRUSTED_TO_ACTION (engine is exfil-only). Deadline 2026-09-01
+(months runway); scoring latency ~8.5h/sub so iterate methodically, one lever/sub.
+Working Note draft started at aisec/working_note/working_note.md (genuine novel
+content = the deterministic-agent-immunity / gpt_oss-replay mismatch analysis).
+
+Nemotron (nvidia-nemotron-model-reasoning-challenge, deadline 2026-06-15): LoRA-adapter
+upload comp, base Nemotron-30B, rank<=32, metric exact-match on 6 deterministic
+reasoning families. 0.86 = shared-public-adapter ceiling (1581 teams tied -> identical
+private score -> tie-broken by time -> copy CANNOT medal). Medal needs >0.86 = GPU
+fine-tune we can't do (no GPU here, deadline tomorrow). User chose: submit proven 0.86
+adapter (0.71->0.86, better finish, no medal) + refocus ai-security. Submitted 0.86
+(ref 53688877). No further Nemotron effort.
