@@ -72,3 +72,5 @@ aisec_eval_C/
 ng_datasets/
 ng_forum/
 ng_heavy/
+rd[0-9]*_2026-*.json
+*_kernel_time*
