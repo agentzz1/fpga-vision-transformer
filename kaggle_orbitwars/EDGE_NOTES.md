@@ -131,3 +131,20 @@ Active comps w/ prize (deadline > today):
 Verdict: our edge (adopt strongest public agent -> medal range) yields MEDALS not PRIZE
 (prize needs top ~3-10 absolute, far above public-agent ceilings). No easy prize chance.
 neurogolf-2026 is the only open question (would need real from-scratch work).
+
+## 2026-06-14 neurogolf final + ai-security pivot
+neurogolf: held-out wall confirmed by REAL submissions. The filename bug ("must be
+named submission.zip") masked everything; once fixed, our crack-heavy assemblies
+scored WORSE on held-out (local 6394 -> real 6135; graphsurgeon+cracks -> 6259) than
+plain graphsurgeon (6375). Our cracks overfit the visible arc-gen examples and fail
+Kaggle's hidden tests. Held-out-safe ceiling = graphsurgeon 6375 (top ~12.6%); bronze
+cutoff rose to ~6401 (> our safe ceiling) => no neurogolf medal achievable by our methods.
+Submitted best stays 6375. orbit-wars SILVER (top ~1.3%) is the secured medal.
+
+ai-agent-security-multi-step-tool-attacks ($50k, deadline 2026-09-01): rules accepted;
+code/notebook (kernels-only) red-teaming via aicomp_sdk v3.1.0. Spawned 10 research
+agents (SDK, scoring, go-explore baseline, targets/tools/fixtures, public notebooks,
+discussions, guardrail track, leaderboard, submission mechanics, local harness).
+Public ceiling ~17, dense 27-plateau, prize zone 32-48. Realistic: medal likely +
+$2,500 Working Note award shot; $50k unlikely. Watch held-out (public OptimalGuardrail
+vs hidden private guardrail) and notebook-submission format.
