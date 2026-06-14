@@ -74,3 +74,7 @@ ng_forum/
 ng_heavy/
 rd[0-9]*_2026-*.json
 *_kernel_time*
+ng_discuss/
+gcg2025/
+ng_topusers/
+*.onnx
