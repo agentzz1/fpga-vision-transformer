@@ -65,3 +65,7 @@ vit_fpga_architecture.png
 vivado_synth_test/*
 work/
 work_basys/
+neurogolf/
+aisec_eval_A/
+aisec_eval_B/
+aisec_eval_C/
