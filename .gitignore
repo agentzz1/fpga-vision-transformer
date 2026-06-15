@@ -80,3 +80,8 @@ ng_topusers/
 *.onnx
 aisec/
 nemotron/
+# Nemotron/aisec large kernel outputs (multi-GB adapter zips, downloaded outputs)
+nemotron/**/out/
+aisec/submit/out*/
+**/submission.zip
+*.zip
