@@ -1,0 +1,16 @@
+{
+  "id": "agentzz/rogii-top-7153",
+  "title": "rogii-top-7153",
+  "code_file": "rogii.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": ["phongnguyn23021656/koolbox-offline", "fleongg/rogii-claude-models-pub", "ravaghi/wellbore-geology-prediction-artifacts"],
+  "competition_sources": ["rogii-wellbore-geology-prediction"],
+  "model_sources": [],
+  "kernel_sources": []
+}
