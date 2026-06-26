@@ -85,3 +85,5 @@ nemotron/**/out/
 aisec/submit/out*/
 **/submission.zip
 *.zip
+eeg_hackathon/__pycache__/
+eeg_hackathon/checkpoints/
