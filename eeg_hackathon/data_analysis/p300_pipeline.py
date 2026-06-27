@@ -55,6 +55,10 @@ def evaluate(epochs, y, fs=250, folds=5, groups=None):
     """
     Xf = bandpass(np.asarray(epochs, float), fs=fs)
     y = np.asarray(y)
+    if len(y) < 4 or len(np.unique(y)) < 2:
+        raise ValueError(f"need >=4 epochs across both classes; got n={len(y)}, "
+                         f"classes={np.unique(y).tolist()}")
+    folds = max(2, min(folds, int(np.min(np.bincount(y)))))
     if groups is not None:
         groups = np.asarray(groups)
         n_g = len(np.unique(groups))
@@ -71,8 +75,11 @@ def evaluate(epochs, y, fs=250, folds=5, groups=None):
         Ftr, Fte = _features(xd.transform(Xf[tr]), fs), _features(xd.transform(Xf[te]), fs)
         clf = LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto").fit(Ftr, y[tr])
         prob = clf.predict_proba(Fte)[:, 1]
-        aucs.append(roc_auc_score(y[te], prob))
+        if len(np.unique(y[te])) == 2:        # AUC undefined on a single-class fold
+            aucs.append(roc_auc_score(y[te], prob))
         accs.append((clf.predict(Fte) == y[te]).mean())
+    if not aucs:
+        raise ValueError("every CV fold was single-class; supply more/grouped data for AUC")
     return {"method": "xDAWN+shrinkLDA", "auc": float(np.mean(aucs)),
             "acc": float(np.mean(accs)), "folds": folds, "n": len(y),
             "n_target": int((y == 1).sum()), "cv": leak}

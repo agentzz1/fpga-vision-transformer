@@ -36,8 +36,15 @@ incl. the Unicorn-8ch subset). FBCSP: `python data_analysis/fbcsp.py`.
 
 # REAL-data validation — SSVEP flagship (Nakanishi2015, 8-channel)
 
-Dataset: **Nakanishi2015** — real **8-channel** SSVEP, 256 Hz, **12 flicker targets**, a
-near-perfect Unicorn analog. Decoder: **training-free FBCCA** (no calibration).
+Dataset: **Nakanishi2015** — real **8-channel** SSVEP, 256 Hz, **12 flicker targets**.
+Decoder: **training-free FBCCA** (no calibration).
+
+*Montage caveat:* Nakanishi's 8 electrodes are an **occipital cluster** (PO/O region),
+not the exact Unicorn montage (Fz, C3, Cz, C4, **Pz, PO7, Oz, PO8**). It is a strong
+*spectral* analog — same channel count, same posterior SSVEP sources the Unicorn's
+Pz/PO7/Oz/PO8 also capture — but it is not Unicorn-recorded data. We have **no real
+Unicorn SSVEP recording**; that is the one gap between this evidence and the live headset
+(and the reason FBCCA/SSVEP, the spectral paradigm, was chosen — it transfers best).
 
 | Subject | Targets | FBCCA acc (0-train) | Chance |
 |---|---|---|---|

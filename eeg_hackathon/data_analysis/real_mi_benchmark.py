@@ -44,11 +44,14 @@ def subset(ch_names, X, names):
     return idx, X[:, idx, :]
 
 
-def run(subjects=(1, 2, 3)):
-    print(f"PhysioNet MI (imagined L/R fist) — within-subject 5-fold CV\n")
+def run(subjects=tuple(range(1, 9))):     # n=8 (PhysioNet has 109 subjects available)
+    print(f"PhysioNet MI (imagined L/R fist) — within-subject 5-fold CV, n={len(subjects)}\n")
     agg = {}
     for s in subjects:
-        ch, X, y, fs = load_subject(s)
+        try:
+            ch, X, y, fs = load_subject(s)
+        except Exception as e:
+            print(f"  S{s:03d}: skipped ({type(e).__name__})"); continue
         configs = [("64ch", list(range(len(ch))), X)]
         idx8, X8 = subset(ch, X, UNICORN8)
         configs.append((f"Unicorn-{len(idx8)}ch", idx8, X8))
@@ -63,9 +66,11 @@ def run(subjects=(1, 2, 3)):
                   "  ".join(f"{k}={v:.2f}" for k, v in res.items()))
             agg.setdefault(tag, {k: [] for k in res})
             for k, v in res.items(): agg[tag][k].append(v)
-    print("\n=== mean across subjects ===")
+    n_done = len(next(iter(agg.values()))["CSP"]) if agg else 0
+    print(f"\n=== mean +/- std across {n_done} subjects ===")
     for tag, d in agg.items():
-        print(f"  [{tag:11}] " + "  ".join(f"{k}={np.mean(v):.2f}" for k, v in d.items()))
+        print(f"  [{tag:11}] " + "  ".join(
+            f"{k}={np.mean(v):.2f}+/-{np.std(v):.2f}" for k, v in d.items()))
 
 
 if __name__ == "__main__":

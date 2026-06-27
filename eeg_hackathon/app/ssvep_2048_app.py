@@ -89,6 +89,7 @@ def run(synthetic=True, win_s=2.0, model_path=None):
     gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
     dwell = deque(maxlen=2)  # LIVE: require 2 consecutive confident agreeing windows
     last_decode = [0.0]; scores = [np.zeros(4)]
+    step_s = 0.5            # overlapping re-decode cadence (window stays win_s long)
     frame = 0
 
     def draw_board():
@@ -123,9 +124,11 @@ def run(synthetic=True, win_s=2.0, model_path=None):
                 km = {pygame.K_UP:0,pygame.K_DOWN:1,pygame.K_LEFT:2,pygame.K_RIGHT:3}
                 if e.key in km:
                     gaze_idx[0] = km[e.key]; game.move(ARROW_DIRS[km[e.key]])
-        # periodic EEG decode -> move
+        # EEG decode on OVERLAPPING windows: re-decode every step_s using the last
+        # win_s of data, so the dwell gate accumulates evidence continuously and a
+        # move lands in ~1-2s, not ~4-6s (non-overlapping). Same gate for live + synth.
         now = time.time()
-        if now - last_decode[0] >= win_s:
+        if now - last_decode[0] >= step_s:
             last_decode[0] = now
             win = src.window(win_s, gaze_idx[0], freqs=freqs)
             if win is not None:
@@ -137,15 +140,15 @@ def run(synthetic=True, win_s=2.0, model_path=None):
                 scores[0] = sc
                 order = np.argsort(sc)[::-1]
                 margin_ok = (sc[order[0]] - sc[order[1]]) >= 0.15 * (abs(sc[order[0]]) + 1e-9)
-                if src.synthetic:
-                    if game.can_move(): game.move(ARROW_DIRS[idx])   # showcase: always move
-                    gaze_idx[0] = (gaze_idx[0] + 1) % 4
-                else:
-                    # LIVE: only move on a confident, stable decode (anti-noise gate)
-                    dwell.append(idx if margin_ok else -1)
-                    if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
-                        if game.can_move(): game.move(ARROW_DIRS[idx])
-                        dwell.clear()
+                # IDENTICAL decision logic for synthetic + live: the DECODER decides.
+                # (synthetic injects the gazed target, but it must still be decoded
+                #  through the confidence+dwell gate, so the showcase can genuinely miss.)
+                dwell.append(idx if margin_ok else -1)
+                if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
+                    if game.can_move(): game.move(ARROW_DIRS[idx])
+                    dwell.clear()
+                    if src.synthetic:        # advance to the next target after a real hit
+                        gaze_idx[0] = (gaze_idx[0] + 1) % 4
         screen.fill((250,248,239))
         title = big.render(f"SSVEP 2048   score {game.score}", True, (119,110,101))
         screen.blit(title, (margin, 30))

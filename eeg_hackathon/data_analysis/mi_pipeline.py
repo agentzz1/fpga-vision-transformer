@@ -55,7 +55,13 @@ class CSP:
 
 def evaluate(X, y, fs=250, n_components=6, folds=5):
     """Bandpass -> CSP -> LDA, cross-validated. X:(trials,ch,T)."""
-    Xf = bandpass(np.asarray(X, float), fs=fs)
+    X = np.asarray(X, float); y = np.asarray(y)
+    if len(y) < 4 or len(np.unique(y)) < 2:
+        raise ValueError(f"need >=4 trials across >=2 classes for CV; got n={len(y)}, "
+                         f"classes={np.unique(y).tolist()}")
+    # clamp folds to the smallest class so StratifiedKFold never errors on few trials
+    folds = max(2, min(folds, int(np.min(np.bincount(y)))))
+    Xf = bandpass(X, fs=fs)
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=0)
     accs = []
     for tr, te in skf.split(Xf, y):

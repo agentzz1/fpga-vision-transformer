@@ -68,9 +68,23 @@ def _press(arrow: str):
     kb.press(key); kb.release(key)
 
 
-def run_live(window_s=2.0, step_s=0.4, refresh=60):
+def _detect_refresh(default=60):
+    """Best-effort monitor refresh via pygame; falls back to `default` headless."""
+    try:
+        import pygame
+        pygame.display.init()
+        r = int(round(pygame.display.get_current_refresh_rate()))
+        pygame.display.quit()
+        return r or default
+    except Exception:
+        return default
+
+
+def run_live(window_s=2.0, step_s=0.4, refresh=None):
     from acquire import LSLAcquirer
     from ssvep_cca import achievable_freqs
+    if refresh is None:
+        refresh = _detect_refresh()
     occ = _occipital_idx()
     acq = LSLAcquirer().start()
     freqs, _ = achievable_freqs(refresh, n=4)
@@ -108,7 +122,7 @@ def run_simulate(trials=24, window_s=2.0):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--simulate", action="store_true")
-    ap.add_argument("--refresh", type=int, default=60,
-                    help="monitor refresh Hz (must match ssvep_stim) for frequency picking")
+    ap.add_argument("--refresh", type=int, default=None,
+                    help="monitor refresh Hz (must match ssvep_stim); auto-detected if omitted")
     a = ap.parse_args()
     run_simulate() if a.simulate else run_live(refresh=a.refresh)

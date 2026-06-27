@@ -1,9 +1,14 @@
 """ssvep_trca.py — TRCA (Task-Related Component Analysis) calibration for SSVEP.
 
 Training-free FBCCA is the baseline that works instantly. TRCA adds a short
-(~60 s) per-user calibration that learns spatial filters + templates per target,
-typically beating CCA/FBCCA — especially at SHORT windows. This is the algorithm
-behind the highest-ITR EEG BCI on record (Nakanishi et al. 2018).
+(~100 s, see REAL_BENCHMARK.md) per-user calibration that learns spatial filters +
+templates per target, typically beating CCA/FBCCA — especially at SHORT windows. This
+is the algorithm behind the highest-ITR EEG BCI on record (Nakanishi et al. 2018).
+
+NOTE: TRCA's advantage shows on REAL EEG (real_ssvep_trca.py: FBCCA 0.93 -> TRCA 0.99).
+On the PURELY synthetic sinusoids below, plain CCA/FBCCA is already near-perfect and can
+match or beat TRCA — synthetic SSVEP has no task-related component for TRCA to exploit,
+so do NOT read the synthetic self-test as the TRCA verdict. The real-data benchmark is.
 
 Workflow:
     model = calibrate(trials_by_class)        # trials_by_class[k]: (n_trials, ch, T)
@@ -66,6 +71,10 @@ def classify_trca(window: np.ndarray, model: Dict) -> Tuple[int, np.ndarray]:
 
 if __name__ == "__main__":
     # A/B vs FBCCA on synthetic SSVEP at a hard (short window, low SNR) setting.
+    # Reminder: synthetic favours CCA (see module docstring) — this only checks the
+    # TRCA math runs and is stable, NOT that TRCA wins. Real verdict: real_ssvep_trca.py.
+    print("[note] synthetic sinusoids favour FBCCA; the TRCA win is on REAL data "
+          "(real_ssvep_trca.py: 0.93 -> 0.99). This is a math/stability smoke test only.\n")
     from ssvep_cca import synth_ssvep, classify
     rng = np.random.default_rng(3)
     n_ch, snr = 4, 0.40

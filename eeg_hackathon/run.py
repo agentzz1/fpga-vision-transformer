@@ -12,7 +12,7 @@ OPTIONS = [
     ("Gaming: SSVEP -> 2048 (FLAGSHIP, self-contained game)", "app/ssvep_2048_app.py", []),
     ("Gaming: SSVEP -> 2048 LIVE (Unicorn LSL)",              "app/ssvep_2048_app.py", ["--live"]),
     ("Gaming: Canabalt FOCUS trigger (band-power, UHB-robust)","canabalt/canabalt_focus.py", []),
-    ("Setup: check the 4 SSVEP frequencies on your screen",   "ssvep/ssvep_cca.py", []),
+    ("Setup: show flickering arrows + print refresh-locked freqs", "ssvep/ssvep_stim.py", []),
     ("Setup: calibrate TRCA + A/B vs FBCCA (real recording)", "ssvep/ssvep_ab.py", []),
     ("Demo (no HW): SSVEP decoder accuracy/ITR",              "ssvep/ssvep_cca.py", []),
     ("Demo (no HW): motor pipeline end-to-end",               "run_demo.py", []),

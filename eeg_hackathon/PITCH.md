@@ -17,7 +17,7 @@ public EEG**, and we picked every method by **measured real-data performance, no
 |---|---|---|
 | **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class, n=9 | FBCCA **0.93** → **TRCA 0.99** (0/~100-s train) |
 | Motor Imagery | PhysioNet, 8-ch 0.61 vs 64-ch 0.70 (CSP) | CSP/Riemann robust on small data |
-| P300 speller | BNCI2014-009 | xDAWN+LDA **AUC 0.96** |
+| P300 speller | BNCI2014-009 (n=2) | xDAWN+LDA **AUC 0.96** (leak-free CV) |
 
 ## Three insights that show depth (judges reward these)
 1. **8 channels retain most of the MI signal** for this task — the signal is sensorimotor/occipital,

@@ -31,7 +31,7 @@ def _groups(meta, n):
         return None
 
 
-def run(subjects=(1, 2), cap=1500):
+def run(subjects=(1, 2, 3, 4, 5), cap=1500):    # BNCI2014-009 has 10 subjects
     from moabb.datasets import BNCI2014_009
     from moabb.paradigms import P300
     ds = BNCI2014_009()
@@ -41,8 +41,11 @@ def run(subjects=(1, 2), cap=1500):
     print("  16-ch vs Unicorn-8ch; GROUP-AWARE CV (GroupKFold by session/run = leak-free)\n")
     f_aucs, e_aucs = [], []
     for s in subjects:
-        Xf, yf, mf = para_full.get_data(ds, [s])
-        Xe, ye, me = para_8.get_data(ds, [s])
+        try:
+            Xf, yf, mf = para_full.get_data(ds, [s])
+            Xe, ye, me = para_8.get_data(ds, [s])
+        except Exception as e:
+            print(f"  S{s}: skipped ({type(e).__name__})"); continue
         gf, ge = _groups(mf, min(len(yf), cap)), _groups(me, min(len(ye), cap))
         yf, ye = _binc(yf), _binc(ye)
         rf = p300_pipeline.evaluate(Xf[:cap], yf[:cap], fs=128, groups=gf)
@@ -51,9 +54,9 @@ def run(subjects=(1, 2), cap=1500):
         print(f"  S{s}: n={min(len(yf),cap)} (target={int(yf[:cap].sum())})  "
               f"16-ch AUC={rf['auc']:.3f}  |  Unicorn-8ch AUC={re['auc']:.3f} "
               f"acc={re['acc']:.3f}  [{re['cv']}]")
-    print(f"\n  mean: 16-ch AUC={np.mean(f_aucs):.3f}  |  "
-          f"Unicorn-8ch AUC={np.mean(e_aucs):.3f}  "
-          f"(8-ch, leak-free, is the number to quote for the Unicorn)")
+    print(f"\n  mean +/- std ({len(e_aucs)} subjects): 16-ch AUC={np.mean(f_aucs):.3f}  |  "
+          f"Unicorn-8ch AUC={np.mean(e_aucs):.3f} +/- {np.std(e_aucs):.3f}  "
+          f"(8-ch, leak-free, is the number to quote)")
 
 
 if __name__ == "__main__":

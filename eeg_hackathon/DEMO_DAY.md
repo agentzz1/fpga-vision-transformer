@@ -22,7 +22,10 @@ the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
    averages **0.93** on real 8-ch 12-class SSVEP (n=9); a ~100-s calibration rescues weak
    responders → ~0.99. Use TRCA live for weak responders; FBCCA is the instant fallback.
 4. `python run.py 2` (LIVE) → play 2048 by looking at arrows. (No headset: `python run.py 1`.)
-Realistic: ~85–95% selection at 2–3 s windows. Record a clean run as backup video.
+Expectation: our REAL-data offline number is FBCCA 0.93 (12-class, 4.2 s epochs); LIVE on
+a dry-electrode Unicorn with a 2 s window is an *easier 4-class* problem but a *harder
+regime* (shorter window, dry electrodes, monitor flicker), so treat 0.93 as an offline
+upper bound — live will be somewhat lower. Record a clean run as a backup video.
 
 ## 2. DATA ANALYSIS — our SOTA pipelines (no hardware; best autonomous odds)
 Load the provided .mat into a `(trials, channels, samples)` array + labels, then:
@@ -46,5 +49,5 @@ synthetic showcase (`python run.py 1`) — visibly the same app, explained hones
 ## 90-second judge pitch
 "Consumer 8-ch EEG, zero-training SSVEP → real-time game control. We chose SSVEP because
 the Unicorn's spectral signal is reliable where its ERPs aren't (cite Pontifex 2023), got
-~Nx% online, and add an optional TRCA calibration (the algorithm behind the highest-ITR
+FBCCA 0.93 offline on real 8-ch data, and add an optional TRCA calibration (the algorithm behind the highest-ITR
 EEG BCI). Same toolkit also delivers SOTA P300 & motor-imagery analysis."
