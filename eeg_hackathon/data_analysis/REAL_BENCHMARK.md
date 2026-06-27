@@ -7,7 +7,7 @@ synthetic 100%s mean nothing; these are what the methods actually deliver.
 ## Results (accuracy)
 | Channels | CSP+LDA | Riemann-TS | FBCSP | EEGNet |
 |---|---|---|---|---|
-| 64-ch (lab cap) | 0.70 | 0.65 | 0.61 | 0.56 |
+| 64-ch (lab cap) | 0.70 | 0.67 | 0.61 | 0.56 |
 | **Unicorn 8-ch subset** | **0.61** | **0.61** | 0.60 | 0.58 |
 
 *(fs=160 Hz correctly applied; 5-fold CV; FBCSP & EEGNet actually run, not estimated.)*
