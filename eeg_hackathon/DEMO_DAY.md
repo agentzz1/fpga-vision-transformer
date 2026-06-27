@@ -11,13 +11,16 @@ python run.py 7     # motor pipeline demo — proves the kit runs (no hardware)
 ```
 
 ## 1. GAMING — SSVEP → 2048 (your flagship)
-Why it wins: Unicorn's SPECTRAL data is reliable (Pontifex & Coffman 2023, r≈0.84),
-so frequency-tagged SSVEP is the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
+Why it wins: Pontifex & Coffman (2023) found the Unicorn gives **valid spectral measures
+even without gel**, while its ERPs need conductive solution — so frequency-tagged SSVEP is
+the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
 1. Unicorn Suite → start **Unicorn LSL**. Check Oz/PO7/PO8/Pz are clean.
-2. `python run.py 4` → confirm the 4 freqs (8.57/10/12/15 Hz) separate on your screen.
-   If a freq is weak, set `FREQS` in `ssvep/ssvep_cca.py` to `refresh/integer` values.
-3. **Do the 60-s TRCA calibration** (`python run.py 5`): on real 8-ch SSVEP it lifts
-   accuracy 0.82→0.98 (12-class). Use TRCA live; FBCCA is the zero-training fallback.
+2. `python run.py 4` → the app **auto-detects your monitor's refresh and prints the 4 exact
+   flicker frequencies** (e.g. 60 Hz → 15/10/7.5/6 Hz; 120 Hz → 15/12/10/8.57 Hz). The same
+   values drive both the flicker and the decoder, so they can never diverge.
+3. **Optional short TRCA calibration** (`python run.py 5`): zero-training FBCCA already
+   averages **0.93** on real 8-ch 12-class SSVEP (n=9); a ~100-s calibration rescues weak
+   responders → ~0.99. Use TRCA live for weak responders; FBCCA is the instant fallback.
 4. `python run.py 2` (LIVE) → play 2048 by looking at arrows. (No headset: `python run.py 1`.)
 Realistic: ~85–95% selection at 2–3 s windows. Record a clean run as backup video.
 
@@ -30,8 +33,9 @@ Pitch: "we benchmark CSP/xDAWN/CCA against SOTA, with cross-validated AUC and an
 ablation." `load_gtec_mat()` is a starting loader; adapt the trigger parsing to the file.
 
 ## 3. CANABALT (on-brief: detect a keystroke) — band-power FOCUS trigger
-Why this not readiness-potential: UHB ERPs are only moderate (P300 r≈0.55) but band-power
-is reliable; Natalizio 2024 hit ~94.6% focus/rest live on the Unicorn during Tetris.
+Why this not readiness-potential: on the Unicorn, band-power is more reliable than ERPs
+(Pontifex & Coffman 2023); Natalizio et al. 2024 reported high focus/engagement
+classification live on the Unicorn during Tetris.
 `python run.py 3` → train; `python canabalt/canabalt_focus.py --realtime` → concentrate to jump.
 
 ## Fallback ladder (so a demo NEVER dies on stage)

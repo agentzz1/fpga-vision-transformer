@@ -4,7 +4,9 @@
 **zero training**, ~90%+ with 2–3 s windows. This is the reliable centerpiece demo.
 
 ## Why this wins
-- 2048's 4 actions ↔ 4 flicker frequencies (8.57/10/12/15 Hz, exact on a 60 Hz screen).
+- 2048's 4 actions ↔ 4 **refresh-locked** flicker frequencies. The app detects your
+  monitor's refresh and picks 4 exact, distinct sub-multiples (60 Hz → 15/10/7.5/6 Hz;
+  120 Hz → 15/12/10/8.57 Hz) for BOTH the flicker and the decoder, so they never diverge.
 - CCA needs **no training data** → works the instant a judge puts on the cap.
 - Occipital channels (Oz/PO7/PO8/Pz) carry SSVEP strongly on the Unicorn.
 - Verified core: 100% on synthetic @1 s; online decision logic 24/24 @2 s.
@@ -33,8 +35,8 @@ python ssvep_online.py --simulate   # full decision-logic check
 ## Tuning knobs that move accuracy
 - **Window length** is the main lever: 1 s fast/risky, 3 s slow/robust. Start 2.5 s.
 - **FBCCA** on (default) > plain CCA. Add a per-user calibration (TRCA) only if time.
-- Pick frequencies that are exact monitor sub-harmonics; avoid pairs in 2:1 ratio
-  (harmonic confusion) — 8.57/10/12/15 are safe on 60 Hz.
+- Frequencies are auto-picked as exact monitor sub-multiples via `achievable_freqs()`;
+  the picker takes 4 consecutive integer half-periods so they're distinct and collision-free.
 
 ## If SSVEP underperforms on the day (safety net)
 - Jaw-clench / blink burst on a frontal channel = a rock-solid binary trigger

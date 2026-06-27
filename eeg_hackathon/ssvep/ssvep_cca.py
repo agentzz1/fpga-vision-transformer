@@ -6,8 +6,14 @@ EEG window against sine/cosine references per frequency — NO training needed �
 and picks the max. Filter-bank CCA (FBCCA) sums sub-band correlations for a
 robust boost.
 
-Frequencies are chosen as 60Hz-monitor sub-harmonics so the flicker is exact:
-  60/7=8.57, 60/6=10, 60/5=12, 60/4=15  ->  ARROWS = up,down,left,right
+A flicker frequency f is only renderable EXACTLY on a display if the half-period
+refresh/(2f) is an integer number of frames. The nominal default set below is the
+120Hz set (where all four are exact: 120/{8,10,12,14}=15/12/10/8.57). On a 60Hz
+monitor those round badly (8.57->7.5, 12->15, colliding with 15). So the live app
+must NOT hard-code FREQS — it calls `achievable_freqs(refresh)` at startup to get
+the exact realizable frequencies for the detected refresh, and feeds THOSE same
+values to both the renderer and the decoder (`classify(..., freqs=...)`). This
+guarantees rendered flicker == decoder reference on any monitor.
 """
 from __future__ import annotations
 
@@ -18,9 +24,31 @@ from scipy.signal import butter, filtfilt
 from sklearn.cross_decomposition import CCA
 
 FS = 250
+# Default reference set = the 120Hz-exact frequencies. The LIVE app overrides this
+# per-monitor via achievable_freqs(refresh); these are the nominal targets / the
+# values used for synthetic tests where there is no real display.
 FREQS = [8.57, 10.0, 12.0, 15.0]          # Hz, one per arrow
 ARROWS = ["up", "down", "left", "right"]
 N_HARMONICS = 3
+
+
+def achievable_freqs(refresh: float, n: int = 4) -> Tuple[List[float], List[int]]:
+    """Exact, distinct flicker frequencies renderable on a `refresh`-Hz display.
+
+    A square-wave flicker toggles every `half` frames, giving f = refresh/(2*half).
+    Only integer `half` is exactly renderable. We pick `n` consecutive integer
+    half-periods starting near the 15Hz end of the usable SSVEP band, so the
+    frequencies are guaranteed distinct and physically exact on this monitor.
+
+    Returns (freqs, halves) where freqs[i] = refresh/(2*halves[i]).
+    Example: 60Hz -> [15, 10, 7.5, 6] (halves 2,3,4,5);
+             120Hz -> [15, 12, 10, 8.571] (halves 4,5,6,7).
+    """
+    refresh = float(refresh)
+    half_min = max(2, int(round(refresh / (2.0 * 15.0))))  # highest freq ~15Hz
+    halves = [half_min + k for k in range(n)]
+    freqs = [refresh / (2.0 * h) for h in halves]
+    return freqs, halves
 
 
 def reference(freq: float, n: int, fs: int = FS, n_harm: int = N_HARMONICS) -> np.ndarray:
@@ -62,7 +90,9 @@ def classify(eeg_win: np.ndarray, freqs: List[float] = FREQS, fs: int = FS,
     if not fbcca:
         scores = np.array([_cca_corr(X, reference(f, n, fs)) for f in freqs])
         return int(np.argmax(scores)), scores
-    # FBCCA: sub-bands emphasising successive harmonics, weighted a^-b + c
+    # FBCCA (Chen et al. 2015): combined feature rho~_k = sum_n w(n)*(rho_k^n)^2,
+    # with w(n)=n^-a + b. The SQUARING is per the original paper (eq. for rho~),
+    # not a bug; sub-bands emphasise successive harmonics.
     bands = [(6, 50), (14, 50), (22, 50)]
     weights = [(k + 1) ** -1.25 + 0.25 for k in range(len(bands))]
     scores = np.zeros(len(freqs))

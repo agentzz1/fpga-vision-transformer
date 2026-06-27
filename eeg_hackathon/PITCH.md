@@ -8,13 +8,14 @@ public EEG**, and we picked every method by **measured real-data performance, no
 ## The demo (60–90 s, live)
 1. Put on the Unicorn → start Unicorn LSL.
 2. Look at a flickering arrow → **2048 moves by brain**. (4 frequencies ↔ 4 arrows.)
-3. Show the **60-s calibration** flip: zero-training **0.82 → calibrated 0.98**.
+3. Zero-training FBCCA already averages **0.93** (n=9); a short ~100-s TRCA calibration
+   rescues weak responders → cohort **0.99**.
 4. (Backup) pre-recorded clip; (fallback) synthetic showcase — demo never dies.
 
 ## Why we win — evidence, not claims (all on REAL public datasets)
 | Paradigm | Real dataset (8-ch where possible) | Result |
 |---|---|---|
-| **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class | FBCCA 0.82 → **TRCA 0.98**, 0/60-s train |
+| **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class, n=9 | FBCCA **0.93** → **TRCA 0.99** (0/~100-s train) |
 | Motor Imagery | PhysioNet, 8-ch 0.61 vs 64-ch 0.70 (CSP) | CSP/Riemann robust on small data |
 | P300 speller | BNCI2014-009 | xDAWN+LDA **AUC 0.96** |
 

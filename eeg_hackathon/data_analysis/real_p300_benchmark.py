@@ -18,6 +18,19 @@ def _binc(y):
     return np.asarray([1 if str(v).lower().startswith("t") else 0 for v in y])
 
 
+def _groups(meta, n):
+    """Group id per epoch = (session, run) so same-run flashes never split across
+    train/test (leak-free CV). Falls back to None if meta lacks the columns."""
+    try:
+        cols = [c for c in ("session", "run") if c in meta.columns]
+        if not cols:
+            return None
+        g = meta[cols].astype(str).agg("/".join, axis=1).to_numpy()
+        return g[:n]
+    except Exception:
+        return None
+
+
 def run(subjects=(1, 2), cap=1500):
     from moabb.datasets import BNCI2014_009
     from moabb.paradigms import P300
@@ -25,20 +38,22 @@ def run(subjects=(1, 2), cap=1500):
     para_full = P300(resample=128)
     para_8 = P300(resample=128, channels=UNICORN8)  # <-- actually subset to 8
     print("BNCI2014-009 — REAL P300 speller, xDAWN+shrinkLDA (within-subject):")
-    print("  reporting FULL 16-ch vs Unicorn-8ch subset (the headset-realistic number)\n")
+    print("  16-ch vs Unicorn-8ch; GROUP-AWARE CV (GroupKFold by session/run = leak-free)\n")
     f_aucs, e_aucs = [], []
     for s in subjects:
-        Xf, yf, _ = para_full.get_data(ds, [s]); yf = _binc(yf)
-        Xe, ye, _ = para_8.get_data(ds, [s]); ye = _binc(ye)
-        rf = p300_pipeline.evaluate(Xf[:cap], yf[:cap], fs=128)
-        re = p300_pipeline.evaluate(Xe[:cap], ye[:cap], fs=128)
+        Xf, yf, mf = para_full.get_data(ds, [s])
+        Xe, ye, me = para_8.get_data(ds, [s])
+        gf, ge = _groups(mf, min(len(yf), cap)), _groups(me, min(len(ye), cap))
+        yf, ye = _binc(yf), _binc(ye)
+        rf = p300_pipeline.evaluate(Xf[:cap], yf[:cap], fs=128, groups=gf)
+        re = p300_pipeline.evaluate(Xe[:cap], ye[:cap], fs=128, groups=ge)
         f_aucs.append(rf["auc"]); e_aucs.append(re["auc"])
         print(f"  S{s}: n={min(len(yf),cap)} (target={int(yf[:cap].sum())})  "
               f"16-ch AUC={rf['auc']:.3f}  |  Unicorn-8ch AUC={re['auc']:.3f} "
-              f"acc={re['acc']:.3f}")
+              f"acc={re['acc']:.3f}  [{re['cv']}]")
     print(f"\n  mean: 16-ch AUC={np.mean(f_aucs):.3f}  |  "
           f"Unicorn-8ch AUC={np.mean(e_aucs):.3f}  "
-          f"(8-ch is the number to quote for the Unicorn)")
+          f"(8-ch, leak-free, is the number to quote for the Unicorn)")
 
 
 if __name__ == "__main__":

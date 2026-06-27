@@ -19,7 +19,7 @@ import argparse, sys, time
 import numpy as np
 
 from game_2048 import Game2048, SIZE
-from ssvep_cca import classify, FREQS, ARROWS, FS, synth_ssvep
+from ssvep_cca import classify, FREQS, ARROWS, FS, synth_ssvep, achievable_freqs
 
 ARROW_DIRS = ["up", "down", "left", "right"]
 TILE_COLORS = {
@@ -44,12 +44,12 @@ class EEGSource:
             except Exception as e:
                 print(f"[EEG] LSL unavailable ({e}); using SYNTHETIC."); self.synthetic = True
 
-    def window(self, win_s, gaze_idx=None):
+    def window(self, win_s, gaze_idx=None, freqs=FREQS):
         if not self.synthetic and self._acq is not None:
             data, _ = self._acq.get_data(seconds=win_s)
             return data[self._occ, -int(win_s*FS):] if data.shape[1] >= int(win_s*FS) else None
-        # synthetic: emit SSVEP at the gazed arrow's frequency (demo/fallback)
-        f = FREQS[gaze_idx if gaze_idx is not None else self.rng.integers(len(FREQS))]
+        # synthetic: emit SSVEP at the gazed arrow's ACTUAL (refresh-locked) frequency
+        f = freqs[gaze_idx if gaze_idx is not None else self.rng.integers(len(freqs))]
         return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
 
 
@@ -70,7 +70,12 @@ def run(synthetic=True, win_s=2.0, model_path=None):
     big = pygame.font.SysFont("arial", 28, bold=True)
     small = pygame.font.SysFont("arial", 20)
     clock = pygame.time.Clock()
-    if "refresh" not in dir() or not refresh: refresh = 60
+    if not refresh: refresh = 60
+    # Refresh-LOCKED frequencies: exact on THIS monitor, shared by render + decode.
+    freqs, halves = achievable_freqs(refresh, n=4)
+    print(f"[SSVEP] display refresh={refresh}Hz -> flicker freqs (Hz): "
+          + ", ".join(f"{ARROWS[i]}={freqs[i]:.3f}(every {halves[i]}f)" for i in range(4)))
+    assert len(set(round(f, 4) for f in freqs)) == 4, "flicker frequencies collide!"
     game = Game2048()
     model = None
     if model_path:
@@ -101,8 +106,8 @@ def run(synthetic=True, win_s=2.0, model_path=None):
         # 4 flicker bars at the edges, frequency per arrow
         bars = {0:(W//2-40,10,80,30), 1:(W//2-40,H-40,80,30),
                 2:(10,top+board_px//2-40,30,80), 3:(W-40,top+board_px//2-40,30,80)}
-        for i,(f,rect) in enumerate(zip(FREQS,[bars[0],bars[1],bars[2],bars[3]])):
-            half = max(1, int(round(refresh / (2.0*f))))   # frames per half-cycle (refresh-locked)
+        for i,rect in enumerate([bars[0],bars[1],bars[2],bars[3]]):
+            half = halves[i]                                # exact integer half-cycle for this monitor
             on = (frame // half) % 2 == 0
             col = (255,255,255) if on else (40,40,40)
             if i == gaze_idx[0]: pygame.draw.rect(screen,(90,160,255),
@@ -122,13 +127,13 @@ def run(synthetic=True, win_s=2.0, model_path=None):
         now = time.time()
         if now - last_decode[0] >= win_s:
             last_decode[0] = now
-            win = src.window(win_s, gaze_idx[0])
+            win = src.window(win_s, gaze_idx[0], freqs=freqs)
             if win is not None:
                 if src.model is not None:
                     from ssvep_trca import classify_trca
                     idx, sc = classify_trca(win, src.model)
                 else:
-                    idx, sc = classify(win)
+                    idx, sc = classify(win, freqs=freqs)
                 scores[0] = sc
                 order = np.argsort(sc)[::-1]
                 margin_ok = (sc[order[0]] - sc[order[1]]) >= 0.15 * (abs(sc[order[0]]) + 1e-9)

@@ -31,8 +31,43 @@ def _covs(X):
     return np.asarray(out)
 
 
-def _mean_cov(C):                      # Euclidean mean ref (robust, cheap)
-    return C.mean(0)
+def _mean_cov(C, max_iter=12, tol=1e-5):
+    """Riemannian geometric (AIRM) mean of SPD matrices, via the standard
+    gradient descent in the tangent space (pyriemann's algorithm). This is the
+    correct reference point for tangent-space mapping; the Euclidean mean
+    (C.mean(0)) is only a first-order approximation and biases the projection.
+    The geometric mean converges in a handful of steps, so max_iter is small;
+    falls back to the Euclidean mean if the iteration misbehaves.
+    """
+    C = np.asarray(C, float)
+    M = C.mean(0)                                   # init at Euclidean mean
+    try:
+        for _ in range(max_iter):
+            M12 = sqrtm(M).real
+            M12i = inv(M12)
+            # mean of logs in the tangent space at M (eigh-based logm: fast + symmetric)
+            S = np.mean([_logm_sym(M12i @ c @ M12i) for c in C], axis=0)
+            M = M12 @ _expm_sym(S) @ M12
+            if np.linalg.norm(S, ord="fro") < tol:
+                break
+        if not np.all(np.linalg.eigvalsh(M) > 0):    # sanity: must stay SPD
+            return C.mean(0)
+        return M
+    except Exception:
+        return C.mean(0)
+
+
+def _logm_sym(A):
+    """Matrix log of a symmetric-PD matrix via eigendecomposition (fast, stable)."""
+    w, V = np.linalg.eigh((A + A.T) / 2)
+    w = np.clip(w, 1e-12, None)
+    return (V * np.log(w)) @ V.T
+
+
+def _expm_sym(S):
+    """Matrix exponential of a symmetric matrix via eigendecomposition."""
+    w, V = np.linalg.eigh((S + S.T) / 2)
+    return (V * np.exp(w)) @ V.T
 
 
 def _tangent(C, ref):

@@ -23,7 +23,8 @@ Read **DEMO_DAY.md** for the step-by-step demo-day flow + the 90-second judge pi
 flickering arrow → it moves. Zero-training FBCCA decoder; optional TRCA calibration.
 Why SSVEP: the Unicorn's spectral signal is reliable where its ERPs aren't
 (Pontifex & Coffman 2023). Canabalt option: band-power **focus trigger**
-(`canabalt/canabalt_focus.py`), motivated by Natalizio 2024 (~94.6% focus/rest on UHB).
+(`canabalt/canabalt_focus.py`), motivated by Natalizio et al. 2024 (high focus/engagement
+classification on the Unicorn during gameplay).
 
 **📊 Data Analysis — point at a `.mat`, get SOTA** (`data_analysis/run_analysis.py`):
 robust loader auto-detects layout; runs the right pipeline. Methods + synthetic ablation:

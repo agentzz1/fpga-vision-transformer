@@ -10,7 +10,7 @@ import numpy as np
 from scipy.linalg import eigh
 from scipy.signal import butter, filtfilt
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, GroupKFold
 from sklearn.metrics import roc_auc_score
 
 
@@ -45,13 +45,28 @@ def _features(X, fs=250, decim=6):
     return Xd.reshape(len(Xd), -1)
 
 
-def evaluate(epochs, y, fs=250, folds=5):
-    """bandpass -> xDAWN -> decimate -> shrinkage LDA. epochs:(n,ch,T). Reports AUC+acc."""
+def evaluate(epochs, y, fs=250, folds=5, groups=None):
+    """bandpass -> xDAWN -> decimate -> shrinkage LDA. epochs:(n,ch,T). Reports AUC+acc.
+
+    groups : optional array of run/character ids, one per epoch. If given, uses
+    GroupKFold so epochs from the same stimulation run never split across
+    train/test — this removes the optimistic bias of a plain shuffled split
+    (correlated 1-target/5-nontarget flashes from one character leaking both ways).
+    """
     Xf = bandpass(np.asarray(epochs, float), fs=fs)
     y = np.asarray(y)
-    skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=0)
+    if groups is not None:
+        groups = np.asarray(groups)
+        n_g = len(np.unique(groups))
+        splitter = GroupKFold(n_splits=min(folds, n_g))
+        split_iter = splitter.split(Xf, y, groups)
+        leak = "group-aware (GroupKFold)"
+    else:
+        splitter = StratifiedKFold(n_splits=folds, shuffle=True, random_state=0)
+        split_iter = splitter.split(Xf, y)
+        leak = "stratified (may be optimistic if epochs are grouped)"
     aucs, accs = [], []
-    for tr, te in skf.split(Xf, y):
+    for tr, te in split_iter:
         xd = XdawnLite().fit(Xf[tr], y[tr])
         Ftr, Fte = _features(xd.transform(Xf[tr]), fs), _features(xd.transform(Xf[te]), fs)
         clf = LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto").fit(Ftr, y[tr])
@@ -60,7 +75,7 @@ def evaluate(epochs, y, fs=250, folds=5):
         accs.append((clf.predict(Fte) == y[te]).mean())
     return {"method": "xDAWN+shrinkLDA", "auc": float(np.mean(aucs)),
             "acc": float(np.mean(accs)), "folds": folds, "n": len(y),
-            "n_target": int((y == 1).sum())}
+            "n_target": int((y == 1).sum()), "cv": leak}
 
 
 def _synth_p300(n_target=60, ratio=5, ch=8, T=200, fs=250, seed=0):

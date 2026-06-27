@@ -94,17 +94,41 @@ print("Note: these are SYNTHETIC checks. Real-EEG numbers: see REAL_BENCHMARK.md
       " RUN_LOG_*.txt, or run `python verify_all.py --real`.")
 
 if REAL:
+    import re
     print("\n==== REAL public-data benchmarks (downloads via MOABB/MNE) ====")
-    real_scripts = [
-        ("SSVEP FBCCA/TRCA", "ssvep/real_ssvep_trca.py"),
-        ("Motor Imagery",    "data_analysis/real_mi_benchmark.py"),
-        ("P300 speller",     "data_analysis/real_p300_benchmark.py"),
+    print("  Each ASSERTS its headline number is at/above the committed RUN_LOG floor.\n")
+    # (script, [(label, regex capturing a float, min_threshold), ...])
+    # Thresholds are conservative floors below the committed measured values, so a
+    # GREEN here means 'the headline number reproduced', not merely 'exited 0'.
+    checks = [
+        ("ssvep/real_ssvep_trca.py", [
+            ("SSVEP FBCCA mean", r"FBCCA:\s*mean=([0-9.]+)", 0.70),   # measured 0.80
+            ("SSVEP TRCA mean",  r"TRCA\s*:\s*mean=([0-9.]+)",  0.90),   # measured 0.98
+        ]),
+        ("data_analysis/real_mi_benchmark.py", [
+            ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.55),  # measured 0.61
+        ]),
+        ("data_analysis/real_p300_benchmark.py", [
+            ("P300 Unicorn-8ch AUC", r"Unicorn-8ch AUC=([0-9.]+)", 0.90),  # measured 0.960 (last=mean)
+        ]),
     ]
-    for name, rel in real_scripts:
-        print(f"\n--- {name} ({rel}) ---")
-        rc = subprocess.call([sys.executable, os.path.join(HERE, rel)])
-        if rc != 0:
-            print(f"  [RED] {name} exited {rc}")
-            allok = False
+    for rel, asserts in checks:
+        print(f"--- {rel} ---")
+        out = subprocess.run([sys.executable, os.path.join(HERE, rel)],
+                             capture_output=True, text=True)
+        sys.stdout.write(out.stdout[-1500:])
+        if out.returncode != 0:
+            print(f"  [RED] {rel} exited {out.returncode}\n{out.stderr[-500:]}"); allok = False; continue
+        text = out.stdout
+        for label, pat, thr in asserts:
+            m = re.findall(pat, text, re.M)
+            if not m:
+                print(f"  [RED] {label}: number not found in output"); allok = False
+            else:
+                val = float(m[-1])
+                ok = val >= thr
+                allok &= ok
+                print(f"  [{'GREEN' if ok else 'RED  '}] {label}={val:.3f} (floor {thr})")
+        print()
 
 sys.exit(0 if allok else 1)

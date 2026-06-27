@@ -36,17 +36,20 @@ def _occipital_idx():
 class SSVEPController:
     """Turns a stream of EEG windows into stable arrow decisions."""
 
-    def __init__(self, margin=0.15, dwell=2, refractory_s=0.8):
+    def __init__(self, margin=0.15, dwell=2, refractory_s=0.8, freqs=FREQS):
         self.margin = margin
         self.dwell = dwell
         self.refractory_s = refractory_s
         self.hist = deque(maxlen=dwell)
         self.last_fire = 0.0
+        # MUST match the stimulus frequencies (refresh-locked). For the two-terminal
+        # stim+online workflow, pass the same achievable_freqs(refresh) used by ssvep_stim.
+        self.freqs = freqs
 
     def step(self, win, now=None):
         """win: (n_occipital_ch, samples). Returns arrow str or None."""
         now = time.time() if now is None else now
-        idx, scores = classify(win)
+        idx, scores = classify(win, freqs=self.freqs)
         order = np.argsort(scores)[::-1]
         top, second = scores[order[0]], scores[order[1]]
         conf_ok = (top - second) >= self.margin * (abs(top) + 1e-9)
@@ -65,12 +68,15 @@ def _press(arrow: str):
     kb.press(key); kb.release(key)
 
 
-def run_live(window_s=2.0, step_s=0.4):
+def run_live(window_s=2.0, step_s=0.4, refresh=60):
     from acquire import LSLAcquirer
+    from ssvep_cca import achievable_freqs
     occ = _occipital_idx()
     acq = LSLAcquirer().start()
-    ctrl = SSVEPController()
-    print(f"SSVEP->2048 live. Look at an arrow. Channels={OCCIPITAL}. Ctrl-C to stop.")
+    freqs, _ = achievable_freqs(refresh, n=4)
+    ctrl = SSVEPController(freqs=freqs)
+    print(f"SSVEP->2048 live (refresh={refresh}Hz, freqs={[round(f,2) for f in freqs]}). "
+          f"Look at an arrow. Channels={OCCIPITAL}. Ctrl-C to stop.")
     try:
         while True:
             data, _ = acq.get_data(seconds=window_s)
@@ -102,5 +108,7 @@ def run_simulate(trials=24, window_s=2.0):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--simulate", action="store_true")
+    ap.add_argument("--refresh", type=int, default=60,
+                    help="monitor refresh Hz (must match ssvep_stim) for frequency picking")
     a = ap.parse_args()
-    run_simulate() if a.simulate else run_live()
+    run_simulate() if a.simulate else run_live(refresh=a.refresh)
