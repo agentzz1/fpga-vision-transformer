@@ -20,9 +20,12 @@ large std is real between-subject variance — "BCI illiteracy" affects ~10–30
    four methods 8-ch ties or beats 64-ch). The discriminative signal is sensorimotor
    (C3/Cz/C4), which the Unicorn has, so dropping the other 56 channels costs ~nothing —
    accuracy is **trial-limited**, not channel-limited.
-2. **On small calibration data, the deep net loses.** EEGNet is worst (0.51, a CNN overfits
-   45 trials); CSP/Riemann/FBCSP cluster at 0.62–0.64 and are statistically indistinguishable
-   at this n. EEGNet only pulls ahead with the ~288 trials of BCI-Competition-IV-2a.
+2. **On small calibration data, this EEGNet recipe loses.** EEGNet (45 trials, 50 epochs,
+   no early-stopping/augmentation) is worst at 0.51; CSP/Riemann/FBCSP cluster at 0.62–0.64.
+   *Scoped claim:* this shows the tested CNN config overfits ~45 trials, not that deep nets
+   are categorically worse — a tuned EEGNet with augmentation could close the gap, and EEGNet
+   pulls ahead anyway with the ~288 trials of BCI-Competition-IV-2a. With n=8 and ±0.18 std
+   the CSP/Riemann/FBCSP differences are **not** statistically separable; treat them as tied.
 3. **→ method auto-selection** (in `run_analysis.py`): <~120 trials ⇒ CSP/Riemann;
    ≥~120 ⇒ also try FBCSP; ≥~250 ⇒ EEGNet. Pick the CV winner, report the ablation.
 4. **Collect more trials** if you can — accuracy on this task is trial-limited, not
@@ -64,6 +67,11 @@ live headset, and a reason FBCCA/SSVEP, the spectral paradigm, was chosen — it
 *(Single source of truth: `ssvep/RUN_LOG_ssvep_trca.txt` — 9 subjects × 3 seeds, cal_frac=0.5.
 **Honest n:** Nakanishi2015 has 10 subjects; 9 download reproducibly here (S10 → ValueError,
 and a rate-limited mirror can return fewer — re-run if you see n<9). So this is n=9, not 10.)*
+
+**Distribution (n=9, not just the mean):** FBCCA per-subject = {0.68, 0.75, 0.97, 0.99, 1.00,
+1.00, 1.00, 1.00, 1.00} → **median 1.00, range 0.68–1.00**. The mean (0.93) is dragged by one
+weak responder (S2); 7 of 9 subjects are ≥0.97. Per-subject test sets are ~7–8 trials/class,
+so the 1.00s are near-ceiling, not infinitely precise — read the spread, not just the mean.
 
 **Why this matters:** 93% on a *12-class* problem with *zero training* on *8 channels* is
 strong (a weak responder, S2 = 0.68, pulls the mean down; most subjects hit ~1.00). Our

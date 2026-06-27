@@ -8,14 +8,19 @@ the committed `RUN_LOG_*.txt`). No hardware? Everything runs on a synthetic fall
 ## 60-second start
 ```bash
 pip install -r requirements.txt
-python verify_all.py          # fast SYNTHETIC smoke test — proves every code path runs
-python verify_all.py --real   # ALSO run the REAL public-data benchmarks (downloads; minutes)
-pip install -r requirements-real.txt   # needed for --real (moabb, torch)
+python verify_all.py          # fast SYNTHETIC smoke test (~13s) — proves every code path runs
 python run.py                 # menu: pick any demo
 ```
+**Reproduce every real headline number with ONE command** (asserts each against its floor):
+```bash
+pip install -r requirements-real.txt          # moabb, torch (downloads public datasets)
+python verify_all.py --real                   # or: make reproduce   (~15-20 min, needs net)
+```
+`--real` runs all five public-data benchmarks (SSVEP TRCA, SSVEP montage, SSVEP live-regime,
+MI, P300) and prints GREEN/RED per headline number — it is the single reproduce-all target.
 **Synthetic vs real:** `verify_all.py` (no args) only proves the code runs end-to-end —
-synthetic 100%s are not evidence. The numbers to quote come from the real-data benchmarks
-(`--real`) and are recorded in `REAL_BENCHMARK.md` / `RUN_LOG_*.txt`.
+synthetic 100%s are not evidence. The numbers to quote come from `--real` and are recorded in
+`REAL_BENCHMARK.md` / `RUN_LOG_*.txt`.
 Read **DEMO_DAY.md** for the step-by-step demo-day flow + the 90-second judge pitch.
 
 ## What's inside (all verified)
