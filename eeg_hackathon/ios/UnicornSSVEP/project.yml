@@ -1,0 +1,47 @@
+name: SSVEP2048
+options:
+  bundleIdPrefix: com.ssvep2048
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""               # set your Apple Developer team for device builds
+    TARGETED_DEVICE_FAMILY: "1,2"      # iPhone + iPad
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  SSVEP2048:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: Sources
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: SSVEP 2048
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        # Portrait + landscape; the flicker grid adapts via GeometryReader.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Required to scan/connect to the Unicorn over CoreBluetooth.
+        NSBluetoothAlwaysUsageDescription: >-
+          SSVEP 2048 connects to a g.tec Unicorn EEG headset over Bluetooth to
+          read your brain signals and let you play 2048 by looking at flickering
+          arrows. No data leaves your device.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ssvep2048.app
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: ""
+        GENERATE_INFOPLIST_FILE: NO

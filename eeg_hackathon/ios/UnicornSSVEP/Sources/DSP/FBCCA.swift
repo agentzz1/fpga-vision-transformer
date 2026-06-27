@@ -45,7 +45,11 @@ import Foundation
 /// Static configuration for the filter-bank CCA decoder.
 ///
 /// Defaults follow Chen et al. (2015) and the interface contract (§B.12):
-///   - three sub-bands `[(8,90),(16,90),(24,90)]` Hz,
+///   - three sub-bands `[(8,80),(16,80),(24,80)]` Hz. NOTE: the high corner is
+///     capped at 80 Hz to match the broadband pre-filter's 80 Hz upper corner
+///     (`Filters.ssvepPrefilter`); content above 80 Hz is already removed before
+///     FBCCA, so a wider sub-band corner would be dead range. (Chen used 90 Hz;
+///     reconciled to the prefilter here.)
 ///   - weighting exponents `a = 1.25`, `b = 0.25`,
 ///   - `N = EEGConfig.windowSamples` samples at `fs = EEGConfig.fs`,
 ///   - `harmonics = EEGConfig.harmonics` (3) sin/cos pairs per reference.
@@ -67,7 +71,7 @@ struct FBCCAConfig {
     init(fs: Double = EEGConfig.fs,
          N: Int = EEGConfig.windowSamples,
          harmonics: Int = EEGConfig.harmonics,
-         subBands: [(lowHz: Float, highHz: Float)] = [(8, 90), (16, 90), (24, 90)],
+         subBands: [(lowHz: Float, highHz: Float)] = [(8, 80), (16, 80), (24, 80)],
          weightA: Float = 1.25, weightB: Float = 0.25) {
         self.fs = fs
         self.N = N
@@ -132,12 +136,23 @@ final class FBCCA {
             powf(Float(m), -config.weightA) + config.weightB
         }
 
-        // Pre-design the band-pass sections for each sub-band. We key the
-        // `Filters.subBand` design by 1-based index so the corners step up
-        // (8/16/24 Hz lows) exactly as in the contract's default sub-bands.
+        // Pre-design the band-pass sections for each sub-band DIRECTLY from the
+        // configured corner frequencies, so a caller passing custom sub-bands
+        // (e.g. [(10,40)]) actually gets those corners. `config.subBands` is the
+        // single source of truth — NOT the hardcoded Chen 8/16/24–90 lows in
+        // `Filters.subBand`. (The default config still yields Chen's sub-bands.)
         let fsF = Float(config.fs)
-        self.subBandSections = (1...max(1, config.subBands.count)).map { m in
-            Filters.subBand(m, fs: fsF)
+        let nyquist = fsF / 2
+        if config.subBands.isEmpty {
+            // Degenerate config: fall back to one Chen sub-band so M >= 1.
+            self.subBandSections = [Filters.subBand(1, fs: fsF)]
+        } else {
+            self.subBandSections = config.subBands.map { band in
+                // Clamp the high corner strictly below Nyquist for stability.
+                let high = min(band.highHz, nyquist * 0.95)
+                return BiquadDesign.butterBandpass(lowHz: band.lowHz,
+                                                   highHz: high, fs: fsF)
+            }
         }
     }
 
@@ -358,11 +373,27 @@ func achievableFreqs(refresh: Double) -> [FlickerTarget] {
     }
 
     // Guarantee exactly `desiredCount` entries (index identity with ARROWS is
-    // load-bearing). Pad with the highest available target if we are short.
-    if let pad = targets.first {
-        while targets.count < desiredCount {
-            targets.append(pad)
+    // load-bearing). If the band yielded fewer than `desiredCount` DISTINCT
+    // frame-locked frequencies, do NOT duplicate (two arrows sharing a frequency
+    // are indistinguishable to FBCCA). Instead, fill the remaining slots from
+    // `EEGConfig.defaultFrequencies`, skipping any value already realized, so
+    // every emitted target frequency is unique.
+    if targets.count < desiredCount {
+        var used = Set(targets.map { Self_round($0.frequency) })
+        for f in EEGConfig.defaultFrequencies {
+            guard targets.count < desiredCount else { break }
+            let key = Self_round(f)
+            if used.contains(key) { continue }
+            used.insert(key)
+            // framesPerHalfPeriod 0 marks a non-frame-locked fallback target;
+            // the renderer clamps k to >= 1 so it still flickers.
+            targets.append(FlickerTarget(frequency: f, framesPerHalfPeriod: 0))
         }
     }
     return Array(targets.prefix(desiredCount))
+}
+
+/// Quantize a frequency to a stable key for duplicate detection (~0.01 Hz).
+private func Self_round(_ f: Double) -> Int {
+    Int((f * 100).rounded())
 }

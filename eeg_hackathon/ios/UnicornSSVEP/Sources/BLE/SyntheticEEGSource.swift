@@ -21,11 +21,7 @@
 //  Conforms to the SAME `EEGSource` protocol as the BLE manager (see
 //  BLE/EEGSource.swift), so `AppViewModel` can swap sources transparently.
 //
-//  NOTE ON FILE LOCATION: The interface contract (§A / §B.4) lists this type
-//  under `Sources/BLE/`. It is written here under `Sources/Core/` per the build
-//  task's explicit output path. The Xcode target compiles everything under
-//  `Sources/`, so either location is on the compile path; the public API is
-//  unchanged. // TODO(contract): reconcile folder (BLE/ vs Core/).
+//  Lives under `Sources/BLE/` per the contract (§A / §B.4).
 //
 
 import Foundation
@@ -75,7 +71,7 @@ final class SyntheticEEGSource: EEGSource {
 
     /// injectFrequency: optional Hz to embed in occipital channels for testing.
     /// Pass `nil` to start with pure noise; a target can be chosen later via
-    /// `setTarget(_:)` / `setTargetFrequency(_:)`.
+    /// `setTargetFrequency(_:)`.
     init(injectFrequency: Double? = nil) {
         self.targetFrequency = injectFrequency
     }
@@ -202,29 +198,18 @@ final class SyntheticEEGSource: EEGSource {
     }
 
     // MARK: - Demo / gaze target control (synthetic-only API)
+    //
+    // This is an additive, synthetic-only setter beyond the §B.4 EEGSource
+    // surface; it is intentionally NOT part of the `EEGSource` protocol and is
+    // only callable on the concrete type. `AppViewModel.setSyntheticGaze`
+    // resolves an ARROWS index to the EXACT realized `FlickerTarget.frequency`
+    // (the same value the decoder/flicker use) and calls this — so there is a
+    // single source of truth for which frequency an arrow maps to, and no
+    // demo-gaze vs decoder mismatch.
 
-    /// Set the gaze target by ARROWS index (0..3). The corresponding frequency
-    /// from `EEGConfig.defaultFrequencies` is embedded in the occipital channels,
-    /// simulating the user looking at that flicker tile. Pass `nil` (or an
-    /// out-of-range index) to simulate gazing away (pure noise / no decision).
-    ///
-    /// This is the "gaze/target setter for the demo" — it is intentionally NOT
-    /// part of the `EEGSource` protocol and is only available on this concrete
-    /// type, used by demo controls to drive a known ground-truth direction.
-    func setTarget(_ arrowIndex: Int?) {
-        genQueue.async {
-            guard let i = arrowIndex,
-                  EEGConfig.defaultFrequencies.indices.contains(i) else {
-                self.targetFrequency = nil
-                return
-            }
-            self.targetFrequency = EEGConfig.defaultFrequencies[i]
-        }
-    }
-
-    /// Set the embedded SSVEP frequency directly in Hz, bypassing the ARROWS
-    /// table. Pass `nil` to simulate gazing away (pure noise). Useful when the
-    /// flicker frequencies are recomputed at runtime via `achievableFreqs`.
+    /// Set the embedded SSVEP frequency directly in Hz. Pass `nil` to simulate
+    /// gazing away (pure noise / no-decision path). Drive this with the realized
+    /// `FlickerTarget.frequency` from `achievableFreqs(refresh:)`.
     func setTargetFrequency(_ hz: Double?) {
         genQueue.async {
             self.targetFrequency = hz

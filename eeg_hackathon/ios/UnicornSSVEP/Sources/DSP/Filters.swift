@@ -194,10 +194,17 @@ enum Filters {
     /// Chen et al. (2015) FBCCA sub-band band-pass sections for filter-bank index
     /// `m` (1-based).
     ///
-    /// Each sub-band m passes [m * 8 Hz, 90 Hz], i.e. successively higher
-    /// high-pass corners so that higher sub-bands isolate higher harmonics. This
-    /// matches the contract's default FBCCA sub-bands `[(8,90),(16,90),(24,90)]`
-    /// for m = 1, 2, 3 (§B.12).
+    /// Each sub-band m passes [m * 8 Hz, 80 Hz], i.e. successively higher
+    /// high-pass corners so that higher sub-bands isolate higher harmonics. The
+    /// high corner is capped at 80 Hz to match the broadband pre-filter's 80 Hz
+    /// upper corner (`ssvepPrefilter`) — content above 80 Hz is already removed
+    /// before FBCCA, so a wider corner would be dead range and is also a steeper,
+    /// more marginally-stable band-pass at fs=250. (Chen used 90 Hz; reconciled
+    /// to the prefilter here.)
+    ///
+    /// NOTE: this helper is now only the degenerate fallback when an FBCCAConfig
+    /// supplies no sub-bands; the normal path designs each sub-band directly from
+    /// `FBCCAConfig.subBands` corners (see `FBCCA.init`).
     ///
     /// - Parameters:
     ///   - m: 1-based sub-band index (clamped to ≥ 1).
@@ -209,10 +216,9 @@ enum Filters {
         // Low corner steps up by 8 Hz per sub-band (Chen's design).
         let low = Float(band) * 8.0
 
-        // High corner is fixed near the usable anti-alias edge. Keep it strictly
-        // below Nyquist for stability; 90 Hz at fs ≥ 250 is safe (Nyquist 125).
+        // High corner matches the prefilter (80 Hz); keep strictly below Nyquist.
         let nyquist = fs / 2.0
-        let high = min(Float(90.0), nyquist * 0.95)
+        let high = min(Float(80.0), nyquist * 0.95)
 
         return BiquadDesign.butterBandpass(lowHz: low, highHz: high, fs: fs)
     }

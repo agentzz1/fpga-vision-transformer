@@ -148,9 +148,12 @@ enum CCA {
             let d = abs(A[i * rows + i])
             if d > maxDiag { maxDiag = d }
         }
-        // Relative threshold ~ machine-epsilon-scaled. If everything is ~0 the
+        // Relative rank threshold tied to single-precision machine epsilon
+        // (`Float.ulpOfOne` ≈ 1.19e-7), scaled by the larger matrix dimension —
+        // the standard LAPACK-style numerical-rank tolerance. Avoids the previous
+        // magic 1e-6 that was not tied to FLT_EPSILON. If everything is ~0 the
         // matrix is effectively constant → rank 0.
-        let tol = maxDiag * Float(max(rows, cols)) * 1.0e-6
+        let tol = maxDiag * Float(max(rows, cols)) * Float.ulpOfOne
         var rank = 0
         for i in 0..<k where abs(A[i * rows + i]) > tol { rank += 1 }
         guard rank > 0 else { return ([], 0) }

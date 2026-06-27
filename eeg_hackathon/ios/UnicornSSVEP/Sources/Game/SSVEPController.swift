@@ -10,10 +10,12 @@
 //  per intended glance). It ports the proven gating recipe:
 //
 //    1. Confidence margin   — reject decisions whose winning target does not beat
-//                             the runner-up by a relative margin (>= 0.15, i.e.
-//                             max >= 1.15 * secondMax). `Decision.confidence` is
-//                             defined by the contract as max/secondMax (>= 1), so
-//                             the margin gate is `confidence >= confidenceThreshold`.
+//                             the runner-up by the configured margin. Default
+//                             threshold 1.2 (max >= 1.2 * secondMax, i.e. a >=0.2
+//                             relative margin with headroom over the proven >=0.15
+//                             recipe). `Decision.confidence` is defined by the
+//                             contract as max/secondMax (>= 1), so the margin gate
+//                             is `confidence >= confidenceThreshold` (default 1.2).
 //    2. Dwell               — require `dwellWindows` *consecutive, agreeing* high-
 //                             confidence windows before committing (default 3 ≈
 //                             0.75 s of sustained intent at the 0.25 s cadence).
