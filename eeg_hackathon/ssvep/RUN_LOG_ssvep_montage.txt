@@ -1,0 +1,21 @@
+# Committed run log — SSVEP montage ablation (headset-realistic number)
+# Command: python3 ssvep/real_ssvep_montage_ablation.py  (Nakanishi2015, n=9, 12-class, 0-train FBCCA)
+# Nakanishi 8-electrode occipital cluster vs the 4 Unicorn-posterior-equivalent channels
+# (PO7, PO8, Oz, POz~=Pz). Date: 2026-06-27
+
+FBCCA (0-train): all-8-occipital vs Unicorn-4-posterior-equiv [PO7,PO8,Oz,POz], 12-class:
+
+  S1: 8-occ=0.74  Unicorn-4=0.76
+  S2: 8-occ=0.67  Unicorn-4=0.51   <- weak responder
+  S3: 8-occ=0.98  Unicorn-4=0.97
+  S4: 8-occ=0.99  Unicorn-4=0.99
+  S5: 8-occ=1.00  Unicorn-4=0.99
+  S6: 8-occ=1.00  Unicorn-4=1.00
+  S7: 8-occ=0.99  Unicorn-4=0.99
+  S8: 8-occ=1.00  Unicorn-4=1.00
+  S9: 8-occ=1.00  Unicorn-4=0.99
+
+  8-occipital       : 0.93 +/- 0.12  (upper bound)
+  Unicorn-4-posterior: 0.91 +/- 0.16  (HEADSET-REALISTIC, n=9)
+# => restricting to the Unicorn's 4 posterior channels costs only ~2 points (0.93 -> 0.91),
+#    because SSVEP lives at PO/O which the Unicorn has. 0.91 is the number to quote for the headset.

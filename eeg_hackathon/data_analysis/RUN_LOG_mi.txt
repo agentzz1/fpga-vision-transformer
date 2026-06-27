@@ -1,0 +1,26 @@
+# Committed run log — Motor Imagery (PhysioNet eegmmidb, imagined L/R fist)
+# Command: python3 data_analysis/real_mi_benchmark.py  (subjects 1-8, 5-fold CV, fs=160)
+# Riemann uses AIRM geometric-mean tangent-space reference. Date: 2026-06-27
+
+PhysioNet MI (imagined L/R fist) — within-subject 5-fold CV, n=8
+
+  S001 [64ch       ] n= 45 CSP=0.76  Riemann=0.62  FBCSP=0.62  EEGNet=0.42
+  S001 [Unicorn-8ch] n= 45 CSP=0.71  Riemann=0.73  FBCSP=0.67  EEGNet=0.49
+  S002 [64ch       ] n= 45 CSP=0.80  Riemann=0.87  FBCSP=0.84  EEGNet=0.69
+  S002 [Unicorn-8ch] n= 45 CSP=0.82  Riemann=0.76  FBCSP=0.80  EEGNet=0.60
+  S003 [64ch       ] n= 45 CSP=0.56  Riemann=0.51  FBCSP=0.38  EEGNet=0.56
+  S003 [Unicorn-8ch] n= 45 CSP=0.29  Riemann=0.36  FBCSP=0.33  EEGNet=0.64
+  S004 [64ch       ] n= 45 CSP=0.56  Riemann=0.49  FBCSP=0.51  EEGNet=0.53
+  S004 [Unicorn-8ch] n= 45 CSP=0.64  Riemann=0.67  FBCSP=0.67  EEGNet=0.38
+  S005 [64ch       ] n= 45 CSP=0.51  Riemann=0.44  FBCSP=0.58  EEGNet=0.69
+  S005 [Unicorn-8ch] n= 45 CSP=0.49  Riemann=0.42  FBCSP=0.38  EEGNet=0.44
+  S006 [64ch       ] n= 45 CSP=0.42  Riemann=0.42  FBCSP=0.56  EEGNet=0.40
+  S006 [Unicorn-8ch] n= 45 CSP=0.60  Riemann=0.56  FBCSP=0.69  EEGNet=0.62
+  S007 [64ch       ] n= 45 CSP=0.96  Riemann=0.98  FBCSP=0.84  EEGNet=0.53
+  S007 [Unicorn-8ch] n= 45 CSP=0.91  Riemann=0.93  FBCSP=0.91  EEGNet=0.44
+  S008 [64ch       ] n= 45 CSP=0.67  Riemann=0.40  FBCSP=0.56  EEGNet=0.40
+  S008 [Unicorn-8ch] n= 45 CSP=0.62  Riemann=0.58  FBCSP=0.67  EEGNet=0.44
+
+=== mean +/- std across 8 subjects ===
+  [64ch       ] CSP=0.65+/-0.16  Riemann=0.59+/-0.20  FBCSP=0.61+/-0.15  EEGNet=0.53+/-0.11
+  [Unicorn-8ch] CSP=0.64+/-0.18  Riemann=0.62+/-0.18  FBCSP=0.64+/-0.18  EEGNet=0.51+/-0.09

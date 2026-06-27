@@ -45,7 +45,9 @@ ablation." `load_gtec_mat()` is a starting loader; adapt the trigger parsing to 
 Why this not readiness-potential: on the Unicorn, band-power is more reliable than ERPs
 (Pontifex & Coffman 2023); Natalizio et al. 2024 reported high focus/engagement
 classification live on the Unicorn during Tetris.
-`python run.py 3` → train; `python canabalt/canabalt_focus.py --realtime` → concentrate to jump.
+`python canabalt/canabalt_focus.py --realtime --calibrate` → records REAL focus/rest from
+your EEG first, then concentrate to jump. (Plain `--realtime` without `--calibrate` trains on
+SYNTHETIC data and is a code-path demo only — always pass `--calibrate` for the live fallback.)
 
 ## Fallback ladder (so a demo NEVER dies on stage)
 1. SSVEP→2048 live. 2. If EEG noisy: TRCA calibration / widen window to 3 s.

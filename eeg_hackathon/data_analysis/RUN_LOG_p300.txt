@@ -1,0 +1,15 @@
+# Committed run log — P300 (single source of truth for the headline AUC)
+# Command: python3 data_analysis/real_p300_benchmark.py  (subjects 1-5, cap=1500)
+# Dataset: BNCI2014-009. All 8 Unicorn channels exist -> EXACT subset.
+# CV: GroupKFold by session/run (leak-free; same-run flashes never split). Date: 2026-06-27
+
+BNCI2014-009 — REAL P300 speller, xDAWN+shrinkLDA (within-subject), 16-ch vs Unicorn-8ch:
+
+  S1: 16-ch AUC=0.942  |  Unicorn-8ch AUC=0.956  acc=0.925
+  S2: 16-ch AUC=0.959  |  Unicorn-8ch AUC=0.964  acc=0.934
+  S3: 16-ch AUC=0.844  |  Unicorn-8ch AUC=0.833  acc=0.866   <- lower responder
+  S4: 16-ch AUC=0.964  |  Unicorn-8ch AUC=0.959  acc=0.934
+  S5: 16-ch AUC=0.972  |  Unicorn-8ch AUC=0.975  acc=0.950
+
+  mean +/- std (5 subjects): 16-ch AUC=0.936  |  Unicorn-8ch AUC=0.937 +/- 0.052
+  (8-ch leak-free is the number to quote; 8-ch ~= 16-ch -> P300 sources live in the Unicorn montage.)

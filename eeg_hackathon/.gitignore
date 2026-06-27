@@ -1,0 +1,7 @@
+# Kit-local overrides: the parent repo .gitignore has a global `*.txt` rule and ignores
+# checkpoints/, which would silence our committed evidence + reproduce path. Re-include the
+# files a fresh clone NEEDS (RUN_LOGs = single source of truth; requirements-real = reproduce).
+!requirements-real.txt
+!requirements.txt
+!**/RUN_LOG_*.txt
+!DEMO_DAY.md

@@ -1,0 +1,20 @@
+# Committed run log — SSVEP LIVE-REGIME (stacks ALL real-world penalties for the 2048 game)
+# Command: python3 ssvep/real_ssvep_live_regime.py  (Nakanishi2015, n=9, 0-train FBCCA)
+# Penalties stacked: 4 targets + 2s window + 4 Unicorn-posterior channels (PO7,PO8,Oz,POz)
+# Date: 2026-06-27
+
+Nakanishi2015 — LIVE-REGIME FBCCA: 2.0s window, 4 targets, Unicorn-4-posterior channels:
+
+  S1: 4-class 2.0s 4ch -> FBCCA acc=0.78
+  S2: 4-class 2.0s 4ch -> FBCCA acc=0.48   <- weak responder
+  S3: 4-class 2.0s 4ch -> FBCCA acc=0.93
+  S4: 4-class 2.0s 4ch -> FBCCA acc=0.98
+  S5: 4-class 2.0s 4ch -> FBCCA acc=0.97
+  S6: 4-class 2.0s 4ch -> FBCCA acc=1.00
+  S7: 4-class 2.0s 4ch -> FBCCA acc=0.98
+  S8: 4-class 2.0s 4ch -> FBCCA acc=1.00
+  S9: 4-class 2.0s 4ch -> FBCCA acc=1.00
+
+  LIVE-REGIME FBCCA: mean=0.90 +/- 0.16  (n=9, 4-class, 2.0s, Unicorn-4-posterior, 0-train, chance=0.25)
+# => 0.90 is the headset-realistic upper bound: 4 arrows, 2s, the Unicorn's 4 posterior channels.
+#    Remaining unmodelled gap = dry electrodes + real monitor flicker (no Unicorn recording exists).

@@ -1,0 +1,32 @@
+# Committed run log — SSVEP flagship (single source of truth for headline numbers)
+# Command: python3 ssvep/real_ssvep_trca.py   (all available subjects x 3 seeds, cal_frac=0.5)
+# Dataset: Nakanishi2015 (8-ch, 256 Hz, 12-class) — the closest public Unicorn analog.
+# Date: 2026-06-27
+# NOTE: subject availability depends on the figshare mirror; this run got 9/10 (S10 -> ValueError).
+#       An earlier rate-limited run got only 3 (S1-3) and read FBCCA=0.80 — quote the n=9 number.
+
+Nakanishi2015 — FBCCA (0-train) vs TRCA (calibrated), real 8-ch, 9 subjects x 3 seeds, cal_frac=0.5:
+
+  S 1: FBCCA=0.75  TRCA=1.00  (+0.25)  cal=349s (7 trials/class)
+  S 2: FBCCA=0.68  TRCA=0.93  (+0.25)  cal=349s (7 trials/class)   <- weak responder
+  S 3: FBCCA=0.97  TRCA=1.00  (+0.03)
+  S 4: FBCCA=1.00  TRCA=1.00  (+0.00)
+  S 5: FBCCA=1.00  TRCA=1.00  (+0.00)
+  S 6: FBCCA=1.00  TRCA=1.00  (+0.00)
+  S 7: FBCCA=0.99  TRCA=1.00  (+0.01)
+  S 8: FBCCA=1.00  TRCA=1.00  (+0.00)
+  S 9: FBCCA=1.00  TRCA=1.00  (+0.00)
+
+  FBCCA: mean=0.93 +/- 0.12  (n=9)
+  TRCA : mean=0.99 +/- 0.02  (n=9)
+  calibration at cal_frac=0.5: ~349s (epoch 4.2s x ~84 trials) -- i.e. ~6 min, NOT 60s
+  -> TRCA wins; lift = +0.06 (small because FBCCA is already near-ceiling on most subjects)
+
+# Calibration learning curve (TRCA), on the 3-SUBJECT subset S1-3 (incl. weak responder S2,
+# where calibration value is clearest), 3 seeds -- how little calibration is enough:
+# cal_frac | trials/class | cal_seconds | FBCCA | TRCA
+#   0.15   |    2         |     100s    | 0.80  | 0.95
+#   0.20   |    3         |     150s    | 0.80  | 0.97
+#   0.35   |    5         |     249s    | 0.80  | 0.97
+#   0.50   |    7         |     349s    | 0.80  | 0.98
+# => even a SHORT ~100s (2 trials/class) calibration lifts a weak-responder cohort to 0.95.

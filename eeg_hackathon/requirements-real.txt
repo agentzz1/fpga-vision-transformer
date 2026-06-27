@@ -1,0 +1,6 @@
+# Real-data validation extras (real_*_benchmark.py). Heavier; pinned for reproducibility.
+-r requirements.txt
+moabb==1.1.0
+torch==2.4.1
+tsfresh==0.20.2
+xgboost==2.1.1

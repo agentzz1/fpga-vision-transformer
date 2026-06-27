@@ -113,9 +113,10 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
     cell = board_px // SIZE
     from collections import deque
     gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
-    dwell = deque(maxlen=2)  # LIVE: require 2 consecutive confident agreeing windows
+    dwell = deque(maxlen=3)  # require 3 confident agreeing windows (overlap 75% -> need more)
     last_decode = [0.0]; scores = [np.zeros(4)]
     step_s = 0.5            # overlapping re-decode cadence (window stays win_s long)
+    refractory_s = 1.0      # after a lock, ignore decodes this long (no runaway double-moves)
     frame = 0
     from collections import deque as _dq
     dts = _dq(maxlen=refresh)   # ~1s of per-frame dt for a frame-drop / refresh-mismatch check
@@ -159,7 +160,9 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
         # win_s of data, so the dwell gate accumulates evidence continuously and a
         # move lands in ~1-2s, not ~4-6s (non-overlapping). Same gate for live + synth.
         now = time.time()
-        if now - last_decode[0] >= step_s:
+        if now - last_lock[0] < refractory_s:     # refractory: no runaway double-moves
+            state[0] = "locked (refractory)"
+        elif now - last_decode[0] >= step_s:
             last_decode[0] = now
             win = src.window(win_s, gaze_idx[0], freqs=freqs)
             if win is not None and src.bad:

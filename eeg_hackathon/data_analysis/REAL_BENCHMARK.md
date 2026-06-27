@@ -54,7 +54,13 @@ Unicorn-posterior-equivalent electrodes (PO7,PO8,Oz,POz≈Pz):
 
 Dropping to the Unicorn's 4 posterior channels costs only **~2 points** — SSVEP lives at
 PO/O, which the Unicorn has. **Quote 0.91 as the headset-realistic 12-class number** (source:
-`ssvep/RUN_LOG_ssvep_montage.txt`). Remaining honest gap: this is still Nakanishi-recorded,
+`ssvep/RUN_LOG_ssvep_montage.txt`).
+
+*Two honest approximations in this proxy:* (1) Nakanishi has no Pz, so we substitute **POz**
+for the Unicorn's **Pz** — POz is slightly more posterior, so it carries marginally *more*
+SSVEP, making the proxy a touch **optimistic**; (2) Nakanishi has **zero frontal/central
+electrodes**, so the Unicorn's Fz/C3/Cz/C4 (which contribute little SSVEP anyway) are simply
+absent — the proxy is occipital-only. Net: read 0.91 as a mild upper bound, not a floor. Remaining honest gap: this is still Nakanishi-recorded,
 not Unicorn-recorded data — we have **no real Unicorn SSVEP recording** (the one gap to the
 live headset, and a reason FBCCA/SSVEP, the spectral paradigm, was chosen — it transfers best).
 
