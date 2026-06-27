@@ -16,7 +16,8 @@ so frequency-tagged SSVEP is the robust paradigm; 4 arrows ↔ 4 frequencies; ze
 1. Unicorn Suite → start **Unicorn LSL**. Check Oz/PO7/PO8/Pz are clean.
 2. `python run.py 4` → confirm the 4 freqs (8.57/10/12/15 Hz) separate on your screen.
    If a freq is weak, set `FREQS` in `ssvep/ssvep_cca.py` to `refresh/integer` values.
-3. (optional, +accuracy) `python run.py 5` → 60-s TRCA calibration + A/B; use the winner.
+3. **Do the 60-s TRCA calibration** (`python run.py 5`): on real 8-ch SSVEP it lifts
+   accuracy 0.83→0.98 (12-class). Use TRCA live; FBCCA is the zero-training fallback.
 4. `python run.py 2` (LIVE) → play 2048 by looking at arrows. (No headset: `python run.py 1`.)
 Realistic: ~85–95% selection at 2–3 s windows. Record a clean run as backup video.
 

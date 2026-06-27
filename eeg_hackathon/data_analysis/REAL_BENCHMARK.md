@@ -71,3 +71,22 @@ AUC ~0.96 on real data confirms the P300 pipeline is SOTA-competitive. Reproduce
 
 This is the evidence base that makes the kit a credible *best-working* implementation:
 real datasets, honest numbers, headset-realistic (8-ch) where possible.
+
+---
+
+# REAL-data: SSVEP calibration pays off (FBCCA vs TRCA, Nakanishi2015)
+
+60-s TRCA calibration vs training-free FBCCA, real 8-ch, 12-class, within-subject:
+
+| Subject | FBCCA (0-train) | TRCA (calibrated) | Δ |
+|---|---|---|---|
+| S1 | 0.78 | 1.00 | +0.22 |
+| S2 | 0.73 | 0.95 | +0.22 |
+| S3 | 0.97 | 1.00 | +0.03 |
+| **mean** | **0.83** | **0.98** | **+0.15** |
+
+**Flagship recommendation (empirical):** run **TRCA** with a 60-s calibration → ~0.98 on
+12-class real 8-ch SSVEP (→ near-perfect for 4-class 2048). Keep **FBCCA** as the instant
+zero-training fallback (0.83) for "judge puts on the cap, it works immediately." This is
+the exact A/B I said real data would settle — and it did. Reproduce:
+`python ssvep/real_ssvep_trca.py`.
