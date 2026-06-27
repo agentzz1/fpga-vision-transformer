@@ -38,6 +38,7 @@ class EEGSource:
         self.notch = notch            # mains notch (50 EU / 60 US); None to disable
         self.bad = []                 # last live window's bad-channel reasons (per occ ch)
         self._occ_names = ["Oz", "PO7", "PO8", "Pz"]
+        self.live_failed = False       # True if --live was requested but LSL fell back
         self._acq = None; self._occ = None
         if not synthetic:
             try:
@@ -45,7 +46,11 @@ class EEGSource:
                 from ssvep_online import _occipital_idx
                 self._acq = LSLAcquirer().start(); self._occ = _occipital_idx()
             except Exception as e:
-                print(f"[EEG] LSL unavailable ({e}); using SYNTHETIC."); self.synthetic = True
+                print("=" * 60)
+                print(f"[EEG] !!! LIVE REQUESTED BUT LSL IS DOWN ({e}) -> SYNTHETIC !!!")
+                print("[EEG] The board will move WITHOUT a headset. Start 'Unicorn LSL'.")
+                print("=" * 60)
+                self.synthetic = True; self.live_failed = True
 
     def window(self, win_s, gaze_idx=None, freqs=FREQS):
         if not self.synthetic and self._acq is not None:
@@ -115,6 +120,8 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
     from collections import deque as _dq
     dts = _dq(maxlen=refresh)   # ~1s of per-frame dt for a frame-drop / refresh-mismatch check
     drop_warn = [""]
+    state = ["listening…"]      # per-decode operator feedback (abstain/confidence/lock)
+    last_lock = [0.0]           # wall time of last successful move (for the no-lock hint)
 
     def draw_board():
         for r in range(SIZE):
@@ -157,6 +164,7 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
             win = src.window(win_s, gaze_idx[0], freqs=freqs)
             if win is not None and src.bad:
                 dwell.clear()                 # bad electrode contact -> refuse to decode
+                state[0] = "BAD CONTACT"
             elif win is not None:
                 if src.model is not None:
                     from ssvep_trca import classify_trca
@@ -172,18 +180,32 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
                 dwell.append(idx if margin_ok else -1)
                 if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
                     if game.can_move(): game.move(ARROW_DIRS[idx])
-                    dwell.clear()
+                    dwell.clear(); last_lock[0] = now
+                    state[0] = f"LOCKED: {ARROWS[idx].upper()}"
                     if src.synthetic:        # advance to the next target after a real hit
                         gaze_idx[0] = (gaze_idx[0] + 1) % 4
+                elif margin_ok:
+                    state[0] = f"listening… ({ARROWS[idx]}?)"
+                else:
+                    state[0] = "low confidence"
         screen.fill((250,248,239))
         title = big.render(f"SSVEP 2048   score {game.score}", True, (119,110,101))
         screen.blit(title, (margin, 30))
         mode = small.render(("SYNTHETIC demo" if src.synthetic else "LIVE Unicorn") +
-                            "  |  look at an arrow", True, (140,130,120))
+                            f"  |  {state[0]}", True, (140,130,120))
         screen.blit(mode, (margin, 70))
         sc = scores[0]; sct = small.render("CCA: " + "  ".join(
             f"{ARROWS[i]}={sc[i]:.2f}" for i in range(4)), True, (150,140,130))
         screen.blit(sct, (margin, 100))
+        if src.synthetic:                    # UNMISTAKABLE no-headset watermark
+            wm = big.render("SYNTHETIC — NO HEADSET", True, (210,150,150))
+            screen.blit(wm, wm.get_rect(center=(W//2, H-22)))
+        if src.live_failed:                  # --live requested but LSL was down
+            lf = small.render("LIVE REQUESTED BUT LSL DOWN → SYNTHETIC", True, (200,60,60))
+            screen.blit(lf, (margin, H-46))
+        if not src.synthetic and (time.time() - last_lock[0]) > 8.0 and not src.bad:
+            hint = small.render("weak response — try TRCA (--model), widen window, or blink less",
+                                True, (200,120,60)); screen.blit(hint, (margin, 160))
         draw_board(); draw_flickers(frame)   # integer frame count -> refresh-locked parity
         if src.bad:                          # live electrode-contact warning
             warn = big.render("CHECK ELECTRODES: " + ",".join(src.bad), True, (200,60,60))

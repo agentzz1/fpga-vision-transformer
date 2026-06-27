@@ -105,16 +105,20 @@ Unicorn-8ch AUC **0.94 ± 0.05** (n=5) confirms the P300 pipeline is SOTA-compet
 (Pz/Cz/PO7/PO8) all live in the Unicorn montage. S3 is a lower responder (0.83), which the
 ±0.05 std reflects. Reproduce: `python data_analysis/real_p300_benchmark.py`.
 
-## Summary — all three paradigms validated on REAL public data
-| Paradigm | Dataset | Metric | Result |
-|---|---|---|---|
-| SSVEP (flagship) | Nakanishi2015 (8-ch, n=9) | acc, 12-class, 0-train → calib | **0.93 → 0.99** |
-| SSVEP (**live regime**) | Nakanishi2015 (n=9) | acc, **4-class, 2-s window**, 0-train | **0.91 ± 0.15** |
-| Motor Imagery | PhysioNet eegmmidb (8-ch, n=8) | acc, 2-class | **0.64 ± 0.18** |
-| P300 | BNCI2014-009 (8-ch, n=5) | AUC, leak-free | **0.94 ± 0.05** |
+## Summary — all paradigms validated on REAL public data
+| Paradigm | Dataset | Hardware | Metric | Result |
+|---|---|---|---|---|
+| SSVEP (flagship) | Nakanishi2015 (8-ch, n=9) | public, gel occipital cap — **NOT Unicorn** | acc, 12-class, 0-train → calib | **0.93 → 0.99** |
+| SSVEP (**live regime**) | Nakanishi2015 (n=9) | public, **4 Unicorn-posterior ch proxy** — NOT Unicorn | acc, 4-class, 2-s, 0-train | **0.90 ± 0.16** |
+| Motor Imagery | PhysioNet eegmmidb (8-ch, n=8) | public, gel 64-cap subset — NOT Unicorn | acc, 2-class | **0.64 ± 0.18** |
+| P300 | BNCI2014-009 (8-ch, n=5) | public, gel 16-cap subset — NOT Unicorn | AUC, leak-free | **0.94 ± 0.05** |
 
-This is the evidence base that makes the kit a credible *best-working* implementation:
-real datasets, honest numbers, headset-realistic (8-ch) where possible.
+**Honest hardware caveat:** *every* row is a public dataset with a **channel-subset proxy** for
+the Unicorn montage — **none is Unicorn-recorded**. The dominant real-world SSVEP penalty
+(dry electrodes + real monitor flicker) is therefore **unmodeled**; treat these as upper
+bounds. This is the single gap to the live headset (and why SSVEP, the most transferable
+spectral paradigm, is the flagship). Drop a real `.npz` from the headset and the benchmark
+hooks fold it in.
 
 ---
 

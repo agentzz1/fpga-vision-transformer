@@ -114,28 +114,26 @@ print("Note: these are SYNTHETIC checks. Real-EEG numbers: see REAL_BENCHMARK.md
 if REAL:
     import re
     print("\n==== REAL public-data benchmarks (downloads via MOABB/MNE) ====")
-    print("  Each ASSERTS its headline number is at/above the committed RUN_LOG floor.\n")
-    # (script, [(label, regex capturing a float, min_threshold), ...])
-    # Thresholds are conservative floors below the committed measured values, so a
-    # GREEN here means 'the headline number reproduced', not merely 'exited 0'.
-    # Floors track the COMMITTED HEADLINE numbers (RUN_LOG_*.txt), set ~0.05 below the
-    # mean to allow seed/cohort jitter. A GREEN here means the quoted headline reproduced.
+    print("  Each ASSERTS its number is within a TIGHT BAND of the committed RUN_LOG headline.\n")
+    # (script, [(label, regex, expected, tol), ...]) — assert |value - expected| <= tol so a
+    # regression DOWN (0.93->0.89) OR an unexpected shift UP both go RED, not just below-floor.
+    TOL = 0.04
     checks = [
         ("ssvep/real_ssvep_trca.py", [
-            ("SSVEP FBCCA mean", r"FBCCA:\s*mean=([0-9.]+)", 0.88),   # headline 0.93 (n=9)
-            ("SSVEP TRCA mean",  r"TRCA\s*:\s*mean=([0-9.]+)",  0.95),   # headline 0.99 (n=9)
+            ("SSVEP FBCCA mean", r"FBCCA:\s*mean=([0-9.]+)", 0.93, TOL),
+            ("SSVEP TRCA mean",  r"TRCA\s*:\s*mean=([0-9.]+)",  0.99, TOL),
         ]),
         ("ssvep/real_ssvep_montage_ablation.py", [
-            ("SSVEP Unicorn-4-posterior", r"Unicorn-4-posterior:\s*([0-9.]+)", 0.85),  # headline 0.91
+            ("SSVEP Unicorn-4-posterior", r"Unicorn-4-posterior:\s*([0-9.]+)", 0.91, TOL),
         ]),
         ("ssvep/real_ssvep_live_regime.py", [
-            ("SSVEP live-regime (2s,4cls)", r"LIVE-REGIME FBCCA:\s*mean=([0-9.]+)", 0.85),  # headline 0.91
+            ("SSVEP live-regime", r"LIVE-REGIME FBCCA:\s*mean=([0-9.]+)", 0.90, TOL),
         ]),
         ("data_analysis/real_mi_benchmark.py", [
-            ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.58),  # headline 0.64 (n=8)
+            ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.64, TOL + 0.02),
         ]),
         ("data_analysis/real_p300_benchmark.py", [
-            ("P300 Unicorn-8ch AUC", r"Unicorn-8ch AUC=([0-9.]+)", 0.90),  # headline 0.937 (n=5)
+            ("P300 Unicorn-8ch AUC", r"Unicorn-8ch AUC=([0-9.]+)", 0.937, TOL),
         ]),
     ]
     for rel, asserts in checks:
@@ -146,15 +144,16 @@ if REAL:
         if out.returncode != 0:
             print(f"  [RED] {rel} exited {out.returncode}\n{out.stderr[-500:]}"); allok = False; continue
         text = out.stdout
-        for label, pat, thr in asserts:
+        for label, pat, exp, tol in asserts:
             m = re.findall(pat, text, re.M)
             if not m:
                 print(f"  [RED] {label}: number not found in output"); allok = False
             else:
                 val = float(m[-1])
-                ok = val >= thr
+                ok = abs(val - exp) <= tol
                 allok &= ok
-                print(f"  [{'GREEN' if ok else 'RED  '}] {label}={val:.3f} (floor {thr})")
+                print(f"  [{'GREEN' if ok else 'RED  '}] {label}={val:.3f} "
+                      f"(expect {exp:.3f}±{tol:.2f})")
         print()
 
 sys.exit(0 if allok else 1)

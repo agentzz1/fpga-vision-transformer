@@ -14,21 +14,23 @@ python run.py 7     # motor pipeline demo — proves the kit runs (no hardware)
 Why it wins: Pontifex & Coffman (2023) found the Unicorn gives **valid spectral measures
 even without gel**, while its ERPs need conductive solution — so frequency-tagged SSVEP is
 the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
-1. Unicorn Suite → start **Unicorn LSL**. The app now **enforces electrode quality in
-   code**: it maps channels by LSL label (not just position), applies a 50/60 Hz mains
-   notch (`--notch 60` in the US), and shows a red **"CHECK ELECTRODES: PO7…"** banner +
-   refuses to decode if a channel is flat/railed. Watch the startup channel-map print.
-2. `python run.py 4` → the app **auto-detects your monitor's refresh and prints the 4 exact
-   flicker frequencies** (e.g. 60 Hz → 15/10/7.5/6 Hz; 120 Hz → 15/12/10/8.57 Hz). The same
-   values drive both the flicker and the decoder, so they can never diverge.
+1. Unicorn Suite → start **Unicorn LSL**.
+2. `python run.py 4` (**Setup: stimulus + freqs**, = `ssvep/ssvep_stim.py`) → shows the
+   flickering arrows and **prints the 4 refresh-locked frequencies** (60 Hz → 15/10/7.5/6;
+   120 Hz → 15/12/10/8.57). Same values drive flicker AND decoder, so they can't diverge.
 3. **Optional short TRCA calibration** (`python run.py 5`): zero-training FBCCA already
    averages **0.93** on real 8-ch 12-class SSVEP (n=9); a ~100-s calibration rescues weak
    responders → ~0.99. Use TRCA live for weak responders; FBCCA is the instant fallback.
-4. `python run.py 2` (LIVE) → play 2048 by looking at arrows. (No headset: `python run.py 1`.)
+4. `python run.py 2` (**LIVE game**, = `app/ssvep_2048_app.py`) → play 2048 by looking at
+   arrows. The **electrode-quality enforcement lives HERE in the game** (not the step-2 stim):
+   it maps channels by LSL label, applies a 50/60 Hz notch (`--notch 60` US), prints the
+   resolved channel map at startup, shows a red **"CHECK ELECTRODES: PO7…"** banner + refuses
+   to decode on a flat/railed channel, and warns on refresh/frame-drop mismatch. (No headset:
+   `python run.py 1` → clearly watermarked **SYNTHETIC — NO HEADSET**.)
 Expectation (MEASURED, not hand-waved): at the **live regime — 2 s window, 4 targets** —
-FBCCA scores **0.91 ± 0.15** on real 8-ch data (n=9, `RUN_LOG_ssvep_live_regime.txt`), i.e.
-the shorter window and the easier 4-class roughly cancel. The remaining unmodeled gap is
-dry electrodes + real monitor flicker, so treat **~0.91 as the live upper bound**. Record a
+FBCCA scores **0.90 ± 0.16** (n=9, `RUN_LOG_ssvep_live_regime.txt`) — this stacks ALL three
+real penalties: 4 targets, 2 s window, AND the Unicorn's 4 posterior channels. The remaining
+unmodeled gap is dry electrodes + real monitor flicker, so treat **~0.90 as the live upper bound**. Record a
 clean run as a backup video.
 
 ## 2. DATA ANALYSIS — our SOTA pipelines (no hardware; best autonomous odds)

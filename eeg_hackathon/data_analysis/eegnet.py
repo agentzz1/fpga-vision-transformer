@@ -39,6 +39,13 @@ if _HAS_TORCH:
 
 def _fit_eval(Xtr, ytr, Xte, yte, epochs=60, lr=1e-3, seed=0):
     torch.manual_seed(seed)
+    # determinism for reproducible RUN_LOG numbers across machines/BLAS
+    try:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    except Exception:
+        pass
     n_ch, n_time = Xtr.shape[1], Xtr.shape[2]
     net = EEGNet(n_ch, n_time, len(np.unique(ytr)))
     opt = torch.optim.Adam(net.parameters(), lr=lr, weight_decay=1e-3)
