@@ -64,11 +64,36 @@ def _synth_focus(n=80, win_s=1.0, seed=0):
     return np.concatenate(data_list, axis=1), np.asarray(ev, int)
 
 
-def realtime(thresh=0.6, win_s=1.0, step_s=0.2):
+def calibrate_live(acq, win_s=1.0, n_per=15):
+    """Record real focus vs rest windows from the live LSL stream and train on THEM."""
+    import numpy as np
+    n = int(win_s * FS); X, y = [], []
+    for label, name in ((1, "CONCENTRATE hard (mental math)"), (0, "RELAX / rest")):
+        for r in range(n_per):
+            input(f"  [{name}] trial {r+1}/{n_per} — get ready, press Enter then hold {win_s:.0f}s")
+            time.sleep(win_s)
+            data, _ = acq.get_data(seconds=win_s)
+            if data.shape[1] >= n:
+                F, _ = bandpower_features(data[:, -n:][None, ...]); X.append(F[0]); y.append(label)
+    return np.asarray(X), np.asarray(y)
+
+
+def realtime(thresh=0.6, win_s=1.0, step_s=0.2, calibrate=False):
     from acquire import LSLAcquirer
+    acq = LSLAcquirer().start()
+    if calibrate:
+        import numpy as np
+        from sklearn.ensemble import RandomForestClassifier
+        print("LIVE calibration: real focus vs rest from your EEG.")
+        X, y = calibrate_live(acq, win_s)
+        clf = RandomForestClassifier(n_estimators=200, random_state=0).fit(X, y)
+        print(f"calibrated on {len(y)} real trials.")
+    else:
+        print("WARNING: no --calibrate -> classifier trained on SYNTHETIC focus/rest; this is "
+              "a code-path demo, NOT a validated live detector. Use --calibrate for real use.")
+        d, ev = _synth_focus(); clf = train(d, ev, win_s)
     from pynput.keyboard import Controller
-    d, ev = _synth_focus(); clf = train(d, ev, win_s)   # replace w/ real calibration
-    acq = LSLAcquirer().start(); kb = Controller(); n = int(win_s*FS); last = 0.0
+    kb = Controller(); n = int(win_s*FS); last = 0.0
     print("Focus->jump live (concentrate to jump). Ctrl-C to stop.")
     try:
         while True:
@@ -84,7 +109,9 @@ def realtime(thresh=0.6, win_s=1.0, step_s=0.2):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("--realtime", action="store_true")
+    ap.add_argument("--calibrate", action="store_true",
+                    help="record REAL focus/rest from LSL before going live (recommended)")
     a = ap.parse_args()
-    if a.realtime: realtime()
+    if a.realtime: realtime(calibrate=a.calibrate)
     else:
         d, ev = _synth_focus(); train(d, ev)
