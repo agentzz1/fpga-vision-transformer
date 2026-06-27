@@ -31,7 +31,8 @@ def _groups(meta, n):
         return None
 
 
-def run(subjects=(1, 2, 3, 4, 5), cap=1500):    # BNCI2014-009 has 10 subjects
+def run(subjects=(1, 2, 3, 4, 5), cap=1500, require_n=5):    # BNCI2014-009 has 10 subjects
+    import sys as _sys
     from moabb.datasets import BNCI2014_009
     from moabb.paradigms import P300
     ds = BNCI2014_009()
@@ -39,13 +40,13 @@ def run(subjects=(1, 2, 3, 4, 5), cap=1500):    # BNCI2014-009 has 10 subjects
     para_8 = P300(resample=128, channels=UNICORN8)  # <-- actually subset to 8
     print("BNCI2014-009 — REAL P300 speller, xDAWN+shrinkLDA (within-subject):")
     print("  16-ch vs Unicorn-8ch; GROUP-AWARE CV (GroupKFold by session/run = leak-free)\n")
-    f_aucs, e_aucs = [], []
+    f_aucs, e_aucs = [], []; missing = []
     for s in subjects:
         try:
             Xf, yf, mf = para_full.get_data(ds, [s])
             Xe, ye, me = para_8.get_data(ds, [s])
         except Exception as e:
-            print(f"  S{s}: skipped ({type(e).__name__})"); continue
+            print(f"  S{s}: skipped ({type(e).__name__})"); missing.append(s); continue
         gf, ge = _groups(mf, min(len(yf), cap)), _groups(me, min(len(ye), cap))
         yf, ye = _binc(yf), _binc(ye)
         rf = p300_pipeline.evaluate(Xf[:cap], yf[:cap], fs=128, groups=gf)
@@ -57,6 +58,10 @@ def run(subjects=(1, 2, 3, 4, 5), cap=1500):    # BNCI2014-009 has 10 subjects
     print(f"\n  mean +/- std ({len(e_aucs)} subjects): 16-ch AUC={np.mean(f_aucs):.3f}  |  "
           f"Unicorn-8ch AUC={np.mean(e_aucs):.3f} +/- {np.std(e_aucs):.3f}  "
           f"(8-ch, leak-free, is the number to quote)")
+    if len(e_aucs) < require_n:
+        print(f"\n  FAIL: only {len(e_aucs)}/{require_n} subjects (missing {missing}); RE-RUN. "
+              f"The headline (8-ch AUC 0.94) is the n={require_n} cohort, not a partial run.")
+        _sys.exit(1)
 
 
 if __name__ == "__main__":

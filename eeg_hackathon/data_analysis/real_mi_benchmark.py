@@ -44,14 +44,15 @@ def subset(ch_names, X, names):
     return idx, X[:, idx, :]
 
 
-def run(subjects=tuple(range(1, 9))):     # n=8 (PhysioNet has 109 subjects available)
+def run(subjects=tuple(range(1, 9)), require_n=8):  # n=8 (PhysioNet has 109 subjects)
+    import sys as _sys
     print(f"PhysioNet MI (imagined L/R fist) — within-subject 5-fold CV, n={len(subjects)}\n")
-    agg = {}
+    agg = {}; missing = []
     for s in subjects:
         try:
             ch, X, y, fs = load_subject(s)
         except Exception as e:
-            print(f"  S{s:03d}: skipped ({type(e).__name__})"); continue
+            print(f"  S{s:03d}: skipped ({type(e).__name__})"); missing.append(s); continue
         configs = [("64ch", list(range(len(ch))), X)]
         idx8, X8 = subset(ch, X, UNICORN8)
         configs.append((f"Unicorn-{len(idx8)}ch", idx8, X8))
@@ -71,6 +72,10 @@ def run(subjects=tuple(range(1, 9))):     # n=8 (PhysioNet has 109 subjects avai
     for tag, d in agg.items():
         print(f"  [{tag:11}] " + "  ".join(
             f"{k}={np.mean(v):.2f}+/-{np.std(v):.2f}" for k, v in d.items()))
+    if n_done < require_n:
+        print(f"\n  FAIL: only {n_done}/{require_n} subjects (missing {missing}); RE-RUN. "
+              f"The headline (8-ch CSP 0.64) is the n={require_n} cohort, not a partial run.")
+        _sys.exit(1)
 
 
 if __name__ == "__main__":

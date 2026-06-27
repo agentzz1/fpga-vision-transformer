@@ -39,6 +39,10 @@ class FBCSP:
 
 def evaluate(X, y, fs=250, n_components=4, k=8, folds=5):
     X = np.asarray(X, float); y = np.asarray(y)
+    if len(y) < 4 or len(np.unique(y)) < 2:
+        raise ValueError(f"need >=4 trials across >=2 classes; got n={len(y)}, "
+                         f"classes={np.unique(y).tolist()}")
+    folds = max(2, min(folds, int(np.min(np.bincount(y)))))  # clamp like mi/p300
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=0)
     accs = []
     for tr, te in skf.split(X, y):

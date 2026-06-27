@@ -85,8 +85,13 @@ def classify(eeg_win: np.ndarray, freqs: List[float] = FREQS, fs: int = FS,
     class_idx indexes FREQS/ARROWS. scores are per-frequency CCA correlations.
     """
     X = np.asarray(eeg_win, float).T                     # (samples, ch)
-    X = X - X.mean(0, keepdims=True)
     n = X.shape[0]
+    # filtfilt (butter order 4) needs n > padlen (~27); CCA needs a few cycles too.
+    min_n = 32
+    if n < min_n:
+        raise ValueError(f"SSVEP window too short: {n} samples (<{min_n}); use a window "
+                         f">= {min_n/fs:.2f}s at fs={fs} (1-2s recommended)")
+    X = X - X.mean(0, keepdims=True)
     if not fbcca:
         scores = np.array([_cca_corr(X, reference(f, n, fs)) for f in freqs])
         return int(np.argmax(scores)), scores

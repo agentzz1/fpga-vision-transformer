@@ -76,6 +76,7 @@ session/run** (leak-free: correlated flashes from one run never split across tra
 
 | Subject | 16-ch AUC | **Unicorn-8ch AUC** |
 |---|---|---|
+| S1 | 0.942 | **0.956** |
 | S2 | 0.959 | **0.964** |
 | S3 (lower) | 0.844 | **0.833** |
 | S4 | 0.964 | **0.959** |

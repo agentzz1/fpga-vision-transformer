@@ -25,10 +25,17 @@ def main():
     print("\n=== EEG Hackathon Kit (Unicorn Hybrid Black) ===")
     for i, (name, _, _) in enumerate(OPTIONS, 1):
         print(f"  {i}. {name}")
-    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+    if len(sys.argv) > 1:
+        if not sys.argv[1].isdigit():
+            print(f"error: option must be a number 1-{len(OPTIONS)}; got {sys.argv[1]!r}")
+            sys.exit(2)
         choice = int(sys.argv[1])
     else:
-        choice = int(input("Select [1-%d]: " % len(OPTIONS)) or "1")
+        raw = input("Select [1-%d]: " % len(OPTIONS)) or "1"
+        choice = int(raw) if raw.isdigit() else 0
+    if not (1 <= choice <= len(OPTIONS)):
+        print(f"error: option {choice} out of range 1-{len(OPTIONS)}")
+        sys.exit(2)
     name, script, args = OPTIONS[choice - 1]
     print(f"\n-> {name}\n")
     subprocess.run([sys.executable, os.path.join(HERE, script), *args], cwd=os.path.dirname(os.path.join(HERE, script)))

@@ -29,7 +29,11 @@ class CSP:
     def fit(self, X, y):
         X = np.asarray(X, float); y = np.asarray(y)
         classes = np.unique(y)
-        assert len(classes) == 2, "CSP here handles 2 classes"
+        if len(classes) != 2:
+            raise ValueError(
+                f"CSP is binary; got {len(classes)} classes {classes.tolist()}. For >2 "
+                f"classes use one-vs-rest CSP or a Riemannian pipeline (riemann_pipeline.py, "
+                f"which handles multiclass natively).")
         def cov(trials):
             cs = []
             for t in trials:

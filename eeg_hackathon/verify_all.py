@@ -100,16 +100,18 @@ if REAL:
     # (script, [(label, regex capturing a float, min_threshold), ...])
     # Thresholds are conservative floors below the committed measured values, so a
     # GREEN here means 'the headline number reproduced', not merely 'exited 0'.
+    # Floors track the COMMITTED HEADLINE numbers (RUN_LOG_*.txt), set ~0.05 below the
+    # mean to allow seed/cohort jitter. A GREEN here means the quoted headline reproduced.
     checks = [
         ("ssvep/real_ssvep_trca.py", [
-            ("SSVEP FBCCA mean", r"FBCCA:\s*mean=([0-9.]+)", 0.70),   # measured 0.80
-            ("SSVEP TRCA mean",  r"TRCA\s*:\s*mean=([0-9.]+)",  0.90),   # measured 0.98
+            ("SSVEP FBCCA mean", r"FBCCA:\s*mean=([0-9.]+)", 0.88),   # headline 0.93 (n=9)
+            ("SSVEP TRCA mean",  r"TRCA\s*:\s*mean=([0-9.]+)",  0.95),   # headline 0.99 (n=9)
         ]),
         ("data_analysis/real_mi_benchmark.py", [
-            ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.55),  # measured 0.61
+            ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.58),  # headline 0.64 (n=8)
         ]),
         ("data_analysis/real_p300_benchmark.py", [
-            ("P300 Unicorn-8ch AUC", r"Unicorn-8ch AUC=([0-9.]+)", 0.90),  # measured 0.960 (last=mean)
+            ("P300 Unicorn-8ch AUC", r"Unicorn-8ch AUC=([0-9.]+)", 0.90),  # headline 0.937 (n=5)
         ]),
     ]
     for rel, asserts in checks:
