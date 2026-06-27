@@ -13,10 +13,13 @@ frontal-midline THETA / BETA. We classify focus vs rest on log band-power -> whe
     python canabalt_focus.py --realtime  # live: SPACE while you concentrate
 """
 from __future__ import annotations
+import os as _os, sys as _sys
+_HB = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+for _p in (_HB, _os.path.join(_HB, "ssvep"), _os.path.join(_HB, "app")):
+    if _p not in _sys.path: _sys.path.insert(0, _p)
 import argparse, sys, time
 import numpy as np
 
-sys.path.insert(0, "..")
 from eeg_common import FS, CHANNEL_NAMES, BANDS
 from features import bandpower_features
 from model import build_classifier, evaluate
