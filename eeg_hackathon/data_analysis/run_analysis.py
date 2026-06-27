@@ -35,8 +35,19 @@ def main():
     if par == "p300":
         print(" ", p300_pipeline.evaluate(X, y, fs=fs))
     else:
-        print(" ", mi_pipeline.evaluate(X, y, fs=fs))
+        n = len(y)
+        print(" ", mi_pipeline.evaluate(X, y, fs=fs))           # robust on small data
         print(" ", riemann_pipeline.evaluate(X, y, fs=fs))
+        if n >= 120:
+            import fbcsp; print(" ", fbcsp.evaluate(X, y, fs=fs))   # needs more trials
+        if n >= 250:
+            try:
+                import eegnet; print(" ", eegnet.evaluate(X, y))
+            except Exception as e:
+                print("   EEGNet skipped:", e)
+        print(f"  [auto] {n} trials -> "
+              + ("CSP/Riemann (small-data robust)" if n < 120 else
+                 "CSP/Riemann/FBCSP" + ("/EEGNet" if n >= 250 else "")))
     print("\nReport these CV numbers + an ablation vs a baseline (e.g. raw-LDA) to judges.")
 
 
