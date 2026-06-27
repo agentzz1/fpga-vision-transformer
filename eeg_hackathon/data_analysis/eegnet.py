@@ -54,7 +54,7 @@ def _fit_eval(Xtr, ytr, Xte, yte, epochs=60, lr=1e-3, seed=0):
     return (pred == yte).mean()
 
 
-def evaluate(X, y, folds=4, epochs=60):
+def evaluate(X, y, folds=5, epochs=60):
     if not _HAS_TORCH:
         return {"method": "EEGNet", "error": "torch not installed"}
     X = np.asarray(X, float); y = np.asarray(y)

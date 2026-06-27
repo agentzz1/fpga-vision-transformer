@@ -6,21 +6,10 @@ import os, sys, warnings
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
-from ssvep_cca import reference, _cca_corr, _bandpass
+from ssvep_cca import classify
 
 
-def fbcca_predict(X, freqs, fs):
-    """X (ch, T) -> index into freqs via filter-bank CCA."""
-    Xt = (X - X.mean(1, keepdims=True)).T
-    n = Xt.shape[0]
-    bands = [(6, 90), (14, 90), (22, 90)]
-    wts = [(k + 1) ** -1.25 + 0.25 for k in range(len(bands))]
-    scores = np.zeros(len(freqs))
-    for w, (lo, hi) in zip(wts, bands):
-        Xb = _bandpass(Xt, lo, hi, fs)
-        for i, f in enumerate(freqs):
-            scores[i] += w * _cca_corr(Xb, reference(f, n, fs)) ** 2
-    return int(np.argmax(scores))
+from ssvep_cca import classify as _classify
 
 
 def run(subjects=(1, 2, 3)):
@@ -39,7 +28,7 @@ def run(subjects=(1, 2, 3)):
                        else freqs.index(min(freqs, key=lambda z: abs(z-float(v)))) for v in y])
         correct = 0
         for k in range(len(X)):
-            correct += (fbcca_predict(X[k], freqs, fs) == yi[k])
+            correct += (classify(X[k], freqs=freqs, fs=fs)[0] == yi[k])
         acc = correct / len(X); accs.append(acc)
         print(f"  S{s}: n={len(X):3d} trials, {len(freqs)} targets, FBCCA acc={acc:.2f}  (chance={1/len(freqs):.2f})")
     print(f"\n  mean FBCCA acc = {np.mean(accs):.2f}  (12-class, real 8-ch, NO training)")

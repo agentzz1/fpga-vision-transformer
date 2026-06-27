@@ -6,7 +6,7 @@ no hardware), and applies the chosen move. Zero browser dependency = reliable de
 
     python ssvep_2048_app.py              # live (Unicorn LSL) or auto-synthetic
     python ssvep_2048_app.py --synthetic  # force the no-hardware showcase
-    python ssvep_2048_app.py --model cal.npz   # use a TRCA calibration
+    python ssvep_2048_app.py --live --model cal.npy   # calibrated TRCA decode
 
 Controls: arrow keys also work (manual fallback for the judges); ESC quits.
 """
@@ -31,8 +31,9 @@ TILE_COLORS = {
 
 class EEGSource:
     """Live LSL occipital source, or synthetic generator keyed to a 'gaze' target."""
-    def __init__(self, synthetic=True):
+    def __init__(self, synthetic=True, model=None):
         self.synthetic = synthetic
+        self.model = model            # optional TRCA model dict -> calibrated decode
         self.rng = np.random.default_rng(0)
         self._acq = None; self._occ = None
         if not synthetic:
@@ -52,7 +53,7 @@ class EEGSource:
         return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
 
 
-def run(synthetic=True, win_s=2.0):
+def run(synthetic=True, win_s=2.0, model_path=None):
     import pygame
     pygame.init()
     W = 560; H = 760
@@ -63,11 +64,17 @@ def run(synthetic=True, win_s=2.0):
     small = pygame.font.SysFont("arial", 20)
     clock = pygame.time.Clock()
     game = Game2048()
-    src = EEGSource(synthetic=synthetic)
+    model = None
+    if model_path:
+        import numpy as _np
+        model = dict(_np.load(model_path, allow_pickle=True).item()) if model_path.endswith('.npy') else None
+    src = EEGSource(synthetic=synthetic, model=model)
 
     board_px, margin, top = 480, 40, 200
     cell = board_px // SIZE
+    from collections import deque
     gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
+    dwell = deque(maxlen=2)  # LIVE: require 2 consecutive confident agreeing windows
     last_decode = [0.0]; scores = [np.zeros(4)]
     frame = 0; refresh = 60
 
@@ -108,9 +115,23 @@ def run(synthetic=True, win_s=2.0):
             last_decode[0] = now
             win = src.window(win_s, gaze_idx[0])
             if win is not None:
-                idx, sc = classify(win); scores[0] = sc
-                if game.can_move(): game.move(ARROW_DIRS[idx])
-                if src.synthetic: gaze_idx[0] = (gaze_idx[0]+1) % 4   # cycle for showcase
+                if src.model is not None:
+                    from ssvep_trca import classify_trca
+                    idx, sc = classify_trca(win, src.model)
+                else:
+                    idx, sc = classify(win)
+                scores[0] = sc
+                order = np.argsort(sc)[::-1]
+                margin_ok = (sc[order[0]] - sc[order[1]]) >= 0.15 * (abs(sc[order[0]]) + 1e-9)
+                if src.synthetic:
+                    if game.can_move(): game.move(ARROW_DIRS[idx])   # showcase: always move
+                    gaze_idx[0] = (gaze_idx[0] + 1) % 4
+                else:
+                    # LIVE: only move on a confident, stable decode (anti-noise gate)
+                    dwell.append(idx if margin_ok else -1)
+                    if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
+                        if game.can_move(): game.move(ARROW_DIRS[idx])
+                        dwell.clear()
         screen.fill((250,248,239))
         title = big.render(f"SSVEP 2048   score {game.score}", True, (119,110,101))
         screen.blit(title, (margin, 30))
@@ -131,5 +152,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--live", action="store_true")
+    ap.add_argument("--model", default=None, help="TRCA calibration .npy (calibrated decode)")
     a = ap.parse_args()
-    run(synthetic=not a.live)
+    run(synthetic=not a.live, model_path=a.model)

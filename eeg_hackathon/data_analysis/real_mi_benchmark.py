@@ -35,7 +35,8 @@ def load_subject(sub, runs=(4, 8, 12), tmin=0.5, tmax=2.5):
                     preload=True, verbose="ERROR")
     X = ep.get_data() * 1e6                              # (trials, ch, T) microvolts
     y = ep.events[:, -1]; y = (y == y.max()).astype(int)  # 0/1
-    return raw.ch_names, X, y
+    fs = int(round(raw.info['sfreq']))
+    return raw.ch_names, X, y, fs
 
 
 def subset(ch_names, X, names):
@@ -47,15 +48,17 @@ def run(subjects=(1, 2, 3)):
     print(f"PhysioNet MI (imagined L/R fist) — within-subject 5-fold CV\n")
     agg = {}
     for s in subjects:
-        ch, X, y = load_subject(s)
+        ch, X, y, fs = load_subject(s)
         configs = [("64ch", list(range(len(ch))), X)]
         idx8, X8 = subset(ch, X, UNICORN8)
         configs.append((f"Unicorn-{len(idx8)}ch", idx8, X8))
+        import fbcsp
         for tag, _, Xc in configs:
-            res = {"CSP": mi_pipeline.evaluate(Xc, y)["acc"],
-                   "Riemann": riemann_pipeline.evaluate(Xc, y)["acc"]}
+            res = {"CSP": mi_pipeline.evaluate(Xc, y, fs=fs)["acc"],
+                   "Riemann": riemann_pipeline.evaluate(Xc, y, fs=fs)["acc"],
+                   "FBCSP": fbcsp.evaluate(Xc, y, fs=fs)["acc"]}
             if HAS_EEGNET:
-                res["EEGNet"] = eegnet.evaluate(Xc, y, epochs=50)["acc"]
+                res["EEGNet"] = eegnet.evaluate(Xc, y, folds=5, epochs=50)["acc"]
             print(f"  S{s:03d} [{tag:11}] n={len(y):3d} " +
                   "  ".join(f"{k}={v:.2f}" for k, v in res.items()))
             agg.setdefault(tag, {k: [] for k in res})

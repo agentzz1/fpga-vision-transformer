@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 from ssvep_trca import calibrate, classify_trca
-from real_ssvep_benchmark import fbcca_predict
+from ssvep_cca import classify
 
 
 def run(subjects=(1, 2, 3), cal_frac=0.5):
@@ -28,7 +28,7 @@ def run(subjects=(1, 2, 3), cal_frac=0.5):
         cal_idx, te_idx = np.array(cal_idx), np.array(te_idx)
         by_cls = [X[cal_idx][yi[cal_idx] == c] for c in range(len(freqs))]
         model = calibrate(by_cls)
-        fb = np.mean([fbcca_predict(X[i], freqs, fs) == yi[i] for i in te_idx])
+        fb = np.mean([classify(X[i], freqs=freqs, fs=fs)[0] == yi[i] for i in te_idx])
         tr = np.mean([classify_trca(X[i], model)[0] == yi[i] for i in te_idx])
         fb_all.append(fb); tr_all.append(tr)
         print(f"  S{s}: FBCCA={fb:.2f}  TRCA={tr:.2f}  (+{tr-fb:+.2f}, {len(te_idx)} test)")

@@ -1,12 +1,12 @@
-numpy
-scipy
-scikit-learn
-pandas
-matplotlib
-joblib
-mne
-pylsl
-pynput
-pygame
-xgboost
-tsfresh
+# Core — enough for the no-hardware demo, the game, and all synthetic checks.
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.2
+pandas==2.2.3
+matplotlib==3.9.2
+joblib==1.4.2
+# Live acquisition + game + signal:
+pylsl==1.16.2
+pynput==1.7.7
+pygame==2.6.1
+mne==1.8.0

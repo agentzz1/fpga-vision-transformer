@@ -8,7 +8,7 @@ public EEG**, and we picked every method by **measured real-data performance, no
 ## The demo (60–90 s, live)
 1. Put on the Unicorn → start Unicorn LSL.
 2. Look at a flickering arrow → **2048 moves by brain**. (4 frequencies ↔ 4 arrows.)
-3. Show the **60-s calibration** flip: zero-training **0.83 → calibrated 0.98**.
+3. Show the **60-s calibration** flip: zero-training **0.82 → calibrated 0.98**.
 4. (Backup) pre-recorded clip; (fallback) synthetic showcase — demo never dies.
 
 ## Why we win — evidence, not claims (all on REAL public datasets)
@@ -19,7 +19,7 @@ public EEG**, and we picked every method by **measured real-data performance, no
 | P300 speller | BNCI2014-009 | xDAWN+LDA **AUC 0.96** |
 
 ## Three insights that show depth (judges reward these)
-1. **8 channels ≈ 64 channels** for this task — the signal is sensorimotor/occipital,
+1. **8 channels retain most of the MI signal** for this task — the signal is sensorimotor/occipital,
    which the Unicorn has. The headset isn't the bottleneck; trial count is.
 2. **The Unicorn's spectral signal is reliable where its ERPs aren't** (Pontifex 2023),
    which is exactly *why* we chose SSVEP over P300/readiness-potential for live control.

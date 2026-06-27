@@ -5,17 +5,21 @@ Task: imagined **left vs right fist** (PhysioNet eegmmidb, runs 4/8/12), within-
 synthetic 100%s mean nothing; these are what the methods actually deliver.
 
 ## Results (accuracy)
-| Channels | CSP+LDA | Riemann-TS | EEGNet | FBCSP |
+| Channels | CSP+LDA | Riemann-TS | FBCSP | EEGNet |
 |---|---|---|---|---|
-| 64-ch (lab cap) | 0.65 | 0.57 | 0.52 | ~0.60 |
-| **Unicorn 8-ch subset** | **0.64** | **0.62** | 0.55 | ~0.60 |
+| 64-ch (lab cap) | 0.70 | 0.65 | 0.61 | 0.56 |
+| **Unicorn 8-ch subset** | **0.61** | **0.61** | 0.60 | 0.58 |
+
+*(fs=160 Hz correctly applied; 5-fold CV; FBCSP & EEGNet actually run, not estimated.)*
 
 Per-subject (Unicorn-8ch, CSP): S1 0.71, S2 0.82, **S3 0.29** (a weak responder — "BCI
 illiteracy" is real, ~10–30% of people).
 
 ## Findings that make this the right implementation for the hackathon
-1. **8 channels ≈ 64 channels** for MI (0.64 vs 0.65). The discriminative signal is
-   sensorimotor (C3/Cz/C4), which the Unicorn has — so the headset loses almost nothing.
+1. **8 channels retain most of the MI signal** (8-ch ~0.61 vs 64-ch ~0.70 for CSP). The
+   discriminative signal is sensorimotor (C3/Cz/C4), which the Unicorn has; there is a
+   modest gap, and on 8-ch the four methods converge (~0.60) — accuracy is **trial-limited**,
+   not channel-limited at the level that matters.
 2. **On small calibration data, simpler wins.** CSP+LDA and Riemann beat FBCSP and EEGNet
    here, because FBCSP (more features) and EEGNet (a CNN) overfit 45 trials. FBCSP/EEGNet
    only pull ahead with the ~288 trials of BCI-Competition-IV-2a.
@@ -37,7 +41,7 @@ near-perfect Unicorn analog. Decoder: **training-free FBCCA** (no calibration).
 
 | Subject | Targets | FBCCA acc | Chance |
 |---|---|---|---|
-| S1–S3 mean | 12 | **0.81** | 0.08 |
+| S1–S3 mean | 12 | **0.82** | 0.08 |
 | S3 (best) | 12 | 0.98 | 0.08 |
 | S2 (typical) | 12 | 0.69 | 0.08 |
 
@@ -66,7 +70,7 @@ AUC ~0.96 on real data confirms the P300 pipeline is SOTA-competitive. Reproduce
 | Paradigm | Dataset | Metric | Result |
 |---|---|---|---|
 | SSVEP (flagship) | Nakanishi2015 (8-ch) | acc, 12-class, 0-train | **0.81** |
-| Motor Imagery | PhysioNet eegmmidb (8-ch subset) | acc, 2-class | **0.64** |
+| Motor Imagery | PhysioNet eegmmidb (8-ch subset) | acc, 2-class | **0.61** |
 | P300 | BNCI2014-009 | AUC | **0.96** |
 
 This is the evidence base that makes the kit a credible *best-working* implementation:
