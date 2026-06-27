@@ -44,6 +44,9 @@ def main():
     chance = 1.0 / len(freqs)
     print(f"  FBCCA (0-train, all trials, 2s/12-class) = {fb:.2f}  (chance {chance:.2f})")
     print(f"  eTRCA (50/50 split)                      = {tr:.2f}")
+    print(f"\n  NOTE — why this differs from REAL_BENCHMARK.md's S3 FBCCA=0.97:")
+    print(f"  that table value is the FULL 4.2 s window; this fixture is the harder 2 s LIVE")
+    print(f"  window (shorter -> lower FBCCA), and eTRCA recovers to ~{tr:.2f} even at 2 s.")
     # thresholds prove the pipeline DECODES well above chance offline (not a headline match):
     # 12-class FBCCA at a 2s window is legitimately ~0.67; eTRCA recovers to ~0.99.
     ok = fb >= 0.45 and tr >= 0.85

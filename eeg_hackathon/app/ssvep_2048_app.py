@@ -77,10 +77,12 @@ class EEGSource:
             if self.notch:
                 win = notch_filter(win, fs=FS, freq=self.notch)   # kill 50/60Hz mains
             return win
-        # synthetic: emit SSVEP at the gazed arrow's ACTUAL (refresh-locked) frequency
+        # synthetic: emit a NOISY SSVEP at the (hidden) gazed arrow's frequency. SNR is low
+        # enough that the decoder genuinely misses sometimes -> the showcase proves real
+        # decoding, it is NOT a scripted animation (the board moves by the DECODED arrow).
         self.bad = []
         f = freqs[gaze_idx if gaze_idx is not None else self.rng.integers(len(freqs))]
-        return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
+        return synth_ssvep(f, win_s, n_ch=4, snr=0.40, rng=self.rng)
 
 
 def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
@@ -145,7 +147,9 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
     cell = board_px // SIZE
     from collections import deque
     import threading
-    gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
+    # synthetic: a RANDOM HIDDEN target (not a fixed cycle), so the decoder is tested blind
+    gaze_idx = [int(np.random.default_rng().integers(4))]
+    sim_correct = [0]; sim_total = [0]   # blind synthetic decode accuracy (proves real decoding)
     step_s = 0.5            # overlapping re-decode cadence (window stays win_s long)
     refractory_s = 1.0      # after a lock, ignore decodes this long (no runaway double-moves)
     frame = 0
@@ -209,6 +213,8 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
             # IDENTICAL decision logic synthetic + live: the DECODER decides (can genuinely miss).
             dwell.append(idx if margin_ok else -1)
             if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
+                if src.synthetic:                       # BLIND accuracy: did we recover the hidden target?
+                    sim_total[0] += 1; sim_correct[0] += int(idx == gaze_idx[0])
                 with move_lock: pending[0] = idx        # hand the move to the main thread
                 state[0] = f"LOCKED: {ARROWS[idx].upper()}"
                 dwell.clear(); w_last_lock = now; last_lock[0] = now
@@ -233,8 +239,8 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
             mv = pending[0]; pending[0] = None
         if mv is not None and game.can_move():
             game.move(ARROW_DIRS[mv])
-            if src.synthetic:                 # advance to the next target after a real hit
-                gaze_idx[0] = (gaze_idx[0] + 1) % 4
+            if src.synthetic:                 # pick a NEW RANDOM hidden target (blind test)
+                gaze_idx[0] = int(np.random.default_rng().integers(4))
         screen.fill((250,248,239))
         title = big.render(f"SSVEP 2048   score {game.score}", True, (119,110,101))
         screen.blit(title, (margin, 30))
@@ -244,9 +250,12 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
         sc = scores[0]; sct = small.render("CCA: " + "  ".join(
             f"{ARROWS[i]}={sc[i]:.2f}" for i in range(4)), True, (150,140,130))
         screen.blit(sct, (margin, 100))
-        if src.synthetic:                    # UNMISTAKABLE no-headset watermark
-            wm = big.render("SYNTHETIC — NO HEADSET", True, (210,150,150))
-            screen.blit(wm, wm.get_rect(center=(W//2, H-22)))
+        if src.synthetic:                    # UNMISTAKABLE no-headset watermark + blind decode acc
+            acc = (sim_correct[0] / sim_total[0]) if sim_total[0] else 0.0
+            txt = ("SIMULATED SIGNAL — NOT BRAIN DATA  |  blind decode "
+                   f"{sim_correct[0]}/{sim_total[0]} = {acc:.0%}")
+            wm = small.render(txt, True, (200,90,90))
+            screen.blit(wm, wm.get_rect(center=(W//2, H-20)))
         if src.live_failed:                  # --live requested but LSL was down
             lf = small.render("LIVE REQUESTED BUT LSL DOWN → SYNTHETIC", True, (200,60,60))
             screen.blit(lf, (margin, H-46))
