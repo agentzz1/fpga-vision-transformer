@@ -25,10 +25,11 @@ the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
    averages **0.93** on real 8-ch 12-class SSVEP (n=9); a ~100-s calibration rescues weak
    responders → ~0.99. Use TRCA live for weak responders; FBCCA is the instant fallback.
 4. `python run.py 2` (LIVE) → play 2048 by looking at arrows. (No headset: `python run.py 1`.)
-Expectation: our REAL-data offline number is FBCCA 0.93 (12-class, 4.2 s epochs); LIVE on
-a dry-electrode Unicorn with a 2 s window is an *easier 4-class* problem but a *harder
-regime* (shorter window, dry electrodes, monitor flicker), so treat 0.93 as an offline
-upper bound — live will be somewhat lower. Record a clean run as a backup video.
+Expectation (MEASURED, not hand-waved): at the **live regime — 2 s window, 4 targets** —
+FBCCA scores **0.91 ± 0.15** on real 8-ch data (n=9, `RUN_LOG_ssvep_live_regime.txt`), i.e.
+the shorter window and the easier 4-class roughly cancel. The remaining unmodeled gap is
+dry electrodes + real monitor flicker, so treat **~0.91 as the live upper bound**. Record a
+clean run as a backup video.
 
 ## 2. DATA ANALYSIS — our SOTA pipelines (no hardware; best autonomous odds)
 Load the provided .mat into a `(trials, channels, samples)` array + labels, then:

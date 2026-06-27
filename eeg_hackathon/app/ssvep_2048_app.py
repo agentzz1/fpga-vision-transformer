@@ -55,6 +55,13 @@ class EEGSource:
                 return None
             win = data[self._occ, -need:]
             from acquire import channel_quality, notch_filter
+            if not getattr(self, "_unit_checked", False):   # one-time unit sanity check
+                self._unit_checked = True
+                med = float(np.median(win.std(axis=1)))
+                if not (0.3 < med < 500):
+                    print(f"[EEG] WARNING: median channel std={med:.2f} is outside the plausible "
+                          f"uV range — the LSL stream may be in ADC counts/volts, not uV. The "
+                          f"flat/railed gate (tuned in uV) may misfire; rescale the Unicorn LSL output.")
             ok, reasons = channel_quality(win)          # electrode-contact gate
             self.bad = [self._occ_names[i] for i, good in enumerate(ok) if not good]
             if self.notch:
@@ -66,7 +73,7 @@ class EEGSource:
         return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
 
 
-def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0):
+def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
     import pygame
     pygame.init()
     W = 560; H = 760
@@ -74,10 +81,11 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0):
         screen = pygame.display.set_mode((W, H), vsync=1)
     except Exception:
         screen = pygame.display.set_mode((W, H))
-    try:
-        refresh = int(round(pygame.display.get_current_refresh_rate()))
-    except Exception:
-        refresh = 60
+    if refresh is None:                       # --refresh override beats auto-detect
+        try:
+            refresh = int(round(pygame.display.get_current_refresh_rate()))
+        except Exception:
+            refresh = 60
     pygame.display.set_caption("SSVEP 2048 — control with your brain")
     font = pygame.font.SysFont("arial", 40, bold=True)
     big = pygame.font.SysFont("arial", 28, bold=True)
@@ -104,6 +112,9 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0):
     last_decode = [0.0]; scores = [np.zeros(4)]
     step_s = 0.5            # overlapping re-decode cadence (window stays win_s long)
     frame = 0
+    from collections import deque as _dq
+    dts = _dq(maxlen=refresh)   # ~1s of per-frame dt for a frame-drop / refresh-mismatch check
+    drop_warn = [""]
 
     def draw_board():
         for r in range(SIZE):
@@ -177,9 +188,21 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0):
         if src.bad:                          # live electrode-contact warning
             warn = big.render("CHECK ELECTRODES: " + ",".join(src.bad), True, (200,60,60))
             screen.blit(warn, (margin, 130))
+        if drop_warn[0]:                     # frame-drop / refresh-mismatch warning
+            screen.blit(small.render(drop_warn[0], True, (200,60,60)), (margin, 160))
         if not game.can_move():
             go = big.render("GAME OVER", True, (200,60,60)); screen.blit(go,(margin,H-40))
-        pygame.display.flip(); clock.tick(refresh); frame += 1
+        pygame.display.flip()
+        dt = clock.tick(refresh) / 1000.0; frame += 1
+        dts.append(dt)
+        if len(dts) == dts.maxlen:           # check achieved cadence vs assumed refresh
+            measured = 1.0 / (sum(dts) / len(dts))
+            drops = sum(1 for d in dts if d > 1.5 / refresh) / len(dts)
+            if abs(measured - refresh) > 0.5 or drops > 0.1:
+                drop_warn[0] = (f"FRAME ISSUE: assumed {refresh}Hz, measured {measured:.1f}Hz, "
+                                f"{drops*100:.0f}% late — flicker unreliable; pass --refresh / close apps")
+            else:
+                drop_warn[0] = ""
     pygame.quit()
 
 
@@ -189,5 +212,6 @@ if __name__ == "__main__":
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--model", default=None, help="TRCA calibration .npy (calibrated decode)")
     ap.add_argument("--notch", type=float, default=50.0, help="mains notch Hz (50 EU / 60 US; 0=off)")
+    ap.add_argument("--refresh", type=int, default=None, help="monitor refresh Hz override (else auto-detect)")
     a = ap.parse_args()
-    run(synthetic=not a.live, model_path=a.model, notch=(a.notch or None))
+    run(synthetic=not a.live, model_path=a.model, notch=(a.notch or None), refresh=a.refresh)

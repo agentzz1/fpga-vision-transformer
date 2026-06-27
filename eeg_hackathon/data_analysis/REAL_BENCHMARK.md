@@ -101,6 +101,7 @@ Unicorn-8ch AUC **0.94 ± 0.05** (n=5) confirms the P300 pipeline is SOTA-compet
 | Paradigm | Dataset | Metric | Result |
 |---|---|---|---|
 | SSVEP (flagship) | Nakanishi2015 (8-ch, n=9) | acc, 12-class, 0-train → calib | **0.93 → 0.99** |
+| SSVEP (**live regime**) | Nakanishi2015 (n=9) | acc, **4-class, 2-s window**, 0-train | **0.91 ± 0.15** |
 | Motor Imagery | PhysioNet eegmmidb (8-ch, n=8) | acc, 2-class | **0.64 ± 0.18** |
 | P300 | BNCI2014-009 (8-ch, n=5) | AUC, leak-free | **0.94 ± 0.05** |
 

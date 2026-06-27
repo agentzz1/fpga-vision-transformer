@@ -128,6 +128,9 @@ if REAL:
         ("ssvep/real_ssvep_montage_ablation.py", [
             ("SSVEP Unicorn-4-posterior", r"Unicorn-4-posterior:\s*([0-9.]+)", 0.85),  # headline 0.91
         ]),
+        ("ssvep/real_ssvep_live_regime.py", [
+            ("SSVEP live-regime (2s,4cls)", r"LIVE-REGIME FBCCA:\s*mean=([0-9.]+)", 0.85),  # headline 0.91
+        ]),
         ("data_analysis/real_mi_benchmark.py", [
             ("MI Unicorn-8ch CSP", r"\[Unicorn-8ch\]\s*CSP=([0-9.]+)", 0.58),  # headline 0.64 (n=8)
         ]),
