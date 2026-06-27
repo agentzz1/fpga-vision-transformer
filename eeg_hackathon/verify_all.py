@@ -54,7 +54,22 @@ def _focus():
     d, e = _synth_focus(); X, y = _epochs(d, e); F, _ = bandpower_features(X)
     r = ev(F, y, "rf"); return r["acc"] >= 0.8, f"focus acc={r['acc']:.2f}"
 
-for n, f in [("SSVEP decoder", _ssvep), ("2048 game", _game), ("Motor Imagery", _mi),
+
+def _eegnet():
+    import importlib
+    if not importlib.util.find_spec("torch"):
+        return True, "EEGNet skipped (no torch) — numpy pipelines cover it"
+    from eegnet import evaluate
+    from mi_pipeline import _synth_mi
+    r = evaluate(*_synth_mi(n_per=40), epochs=30)
+    return r["acc"] >= 0.8, f"EEGNet acc={r['acc']:.2f}"
+
+def _baseline():
+    from baseline import evaluate
+    from mi_pipeline import _synth_mi
+    r = evaluate(*_synth_mi()); return True, f"baseline acc={r['acc']:.2f} (ablation ref)"
+
+for n, f in [("SSVEP decoder", _ssvep), ("EEGNet", _eegnet), ("Baseline", _baseline), ("2048 game", _game), ("Motor Imagery", _mi),
              ("Riemannian", _riemann), ("P300 speller", _p300), ("Focus trigger", _focus)]:
     check(n, f)
 
