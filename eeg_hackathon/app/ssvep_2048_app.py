@@ -39,6 +39,8 @@ class EEGSource:
         self.bad = []                 # last live window's bad-channel reasons (per occ ch)
         self._occ_names = ["Oz", "PO7", "PO8", "Pz"]
         self.live_failed = False       # True if --live was requested but LSL fell back
+        self.unit_scale = 1.0          # auto-set to 1e6 if the stream looks like volts
+        self.unit_warn = ""            # on-screen unit-sanity message
         self._acq = None; self._occ = None
         if not synthetic:
             try:
@@ -60,14 +62,17 @@ class EEGSource:
                 return None
             win = data[self._occ, -need:]
             from acquire import channel_quality, notch_filter
-            if not getattr(self, "_unit_checked", False):   # one-time unit sanity check
+            if not getattr(self, "_unit_checked", False):   # one-time unit sanity + AUTO-RESCALE
                 self._unit_checked = True
                 med = float(np.median(win.std(axis=1)))
-                if not (0.3 < med < 500):
-                    print(f"[EEG] WARNING: median channel std={med:.2f} is outside the plausible "
-                          f"uV range — the LSL stream may be in ADC counts/volts, not uV. The "
-                          f"flat/railed gate (tuned in uV) may misfire; rescale the Unicorn LSL output.")
-            ok, reasons = channel_quality(win)          # electrode-contact gate
+                if med < 0.3 and med > 0:           # looks like VOLTS -> rescale to uV
+                    self.unit_scale = 1e6
+                    self.unit_warn = f"stream looked like VOLTS (std={med:.1e}) → auto-scaled ×1e6 to µV"
+                elif med > 5000:                    # looks like raw ADC counts
+                    self.unit_warn = f"stream std={med:.0f} looks like ADC counts, not µV — set Unicorn LSL to µV"
+                print(f"[EEG] unit check: median std={med:.2f}  {self.unit_warn or '(µV OK)'}")
+            win = win * self.unit_scale
+            ok, reasons = channel_quality(win)          # electrode-contact gate (now in µV)
             self.bad = [self._occ_names[i] for i, good in enumerate(ok) if not good]
             if self.notch:
                 win = notch_filter(win, fs=FS, freq=self.notch)   # kill 50/60Hz mains
@@ -215,6 +220,8 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
             screen.blit(warn, (margin, 130))
         if drop_warn[0]:                     # frame-drop / refresh-mismatch warning
             screen.blit(small.render(drop_warn[0], True, (200,60,60)), (margin, 160))
+        if src.unit_warn:                    # stream-units warning (on-screen, not just stdout)
+            screen.blit(small.render("UNITS: " + src.unit_warn, True, (200,120,60)), (margin, 178))
         if not game.can_move():
             go = big.render("GAME OVER", True, (200,60,60)); screen.blit(go,(margin,H-40))
         pygame.display.flip()

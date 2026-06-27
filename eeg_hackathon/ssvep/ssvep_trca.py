@@ -20,8 +20,21 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import scipy.linalg as la
+from scipy.signal import butter, filtfilt
 
 from ssvep_cca import FREQS, ARROWS, FS
+
+TRCA_BAND = (6.0, 50.0)   # SSVEP passband applied identically in calibrate + classify
+
+
+def _bp(X, lo=TRCA_BAND[0], hi=TRCA_BAND[1], fs=FS):
+    """Zero-phase Butterworth bandpass on the LAST (time) axis. Bypasses if window
+    is too short for filtfilt's padding (keeps the synthetic smoke test working)."""
+    X = np.asarray(X, float)
+    if X.shape[-1] < 28:
+        return X
+    b, a = butter(4, [lo / (fs / 2), min(hi, fs / 2 - 1) / (fs / 2)], btype="band")
+    return filtfilt(b, a, X, axis=-1)
 
 
 def _trca_filter(trials: np.ndarray) -> np.ndarray:
@@ -41,15 +54,19 @@ def _trca_filter(trials: np.ndarray) -> np.ndarray:
     return eigvecs[:, np.argmax(eigvals.real)].real
 
 
-def calibrate(trials_by_class: List[np.ndarray]) -> Dict:
-    """Build ensemble-TRCA model: a spatial filter + template per class."""
+def calibrate(trials_by_class: List[np.ndarray], band=TRCA_BAND) -> Dict:
+    """Build ensemble-TRCA model: a spatial filter + template per class.
+
+    Epochs are BANDPASSED to the SSVEP band before computing TRCA filters/templates,
+    so the spatial filter isn't dominated by drift/mains; classify_trca applies the
+    identical band to the test window (stored in the model)."""
     filters, templates = [], []
     for trials in trials_by_class:
-        trials = np.asarray(trials, float)
+        trials = _bp(np.asarray(trials, float), band[0], band[1])
         filters.append(_trca_filter(trials))
         templates.append(trials.mean(axis=0))            # (ch, T) trial-average
     W = np.asarray(filters).T                            # (ch, K) ensemble filters
-    return {"W": W, "templates": templates, "freqs": FREQS}
+    return {"W": W, "templates": templates, "freqs": FREQS, "band": band}
 
 
 def _corr(a: np.ndarray, b: np.ndarray) -> float:
@@ -61,7 +78,7 @@ def _corr(a: np.ndarray, b: np.ndarray) -> float:
 
 def classify_trca(window: np.ndarray, model: Dict) -> Tuple[int, np.ndarray]:
     """Ensemble-TRCA: correlate filtered test vs each filtered template."""
-    X = np.asarray(window, float)
+    X = _bp(np.asarray(window, float), *model.get("band", TRCA_BAND))  # same passband as calibrate
     X = X - X.mean(axis=1, keepdims=True)
     W, templates = model["W"], model["templates"]
     Xf = W.T @ X                                          # (K, T)

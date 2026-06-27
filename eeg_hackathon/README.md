@@ -11,7 +11,12 @@ pip install -r requirements.txt
 python verify_all.py          # fast SYNTHETIC smoke test (~13s) — proves every code path runs
 python run.py                 # menu: pick any demo
 ```
-**Reproduce every real headline number with ONE command** (asserts each against its floor):
+**Verify the real pipeline OFFLINE in ~15 s** (no network, no moabb/torch — uses a committed
+2.7 MB real-subject fixture):
+```bash
+python reproduce_fast.py                       # or: make reproduce-fast
+```
+**Reproduce every real headline number** (asserts each within ±0.04 of the committed value):
 ```bash
 pip install -r requirements-real.txt          # moabb, torch (downloads public datasets)
 python verify_all.py --real                   # or: make reproduce   (~15-20 min, needs net)
