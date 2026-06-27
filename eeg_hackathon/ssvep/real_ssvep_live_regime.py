@@ -16,20 +16,23 @@ from ssvep_cca import classify
 
 
 # Nakanishi order: PO7,PO3,POz,PO4,PO8,O1,Oz,O2 -> Unicorn-4-posterior = PO7,PO8,Oz,POz
-UNICORN4 = [0, 4, 6, 2]
+# Unicorn-posterior-equivalent channels, selected BY NAME (POz~=Pz), not by position.
+UNICORN4_NAMES = ["PO7", "PO8", "Oz", "POz"]
 
 
 def run(subjects=tuple(range(1, 10)), win_s=2.0, n_targets=4, require_n=9):
     from moabb.datasets import Nakanishi2015
     from moabb.paradigms import SSVEP
-    ds = Nakanishi2015(); para = SSVEP(n_classes=12); fs = 256
+    ds = Nakanishi2015()
+    para4 = SSVEP(n_classes=12, channels=UNICORN4_NAMES)   # subset by NAME via the paradigm
+    fs = 256
     nsamp = int(win_s * fs)
     print(f"Nakanishi2015 — LIVE-REGIME FBCCA: {win_s}s window, {n_targets} targets, "
-          f"Unicorn-4-posterior channels (ALL THREE live penalties stacked), n up to {len(subjects)}:\n")
+          f"Unicorn-4-posterior channels {UNICORN4_NAMES} (ALL THREE live penalties), n up to {len(subjects)}:\n")
     accs, missing = [], []
     for s in subjects:
         try:
-            X, y, _ = para.get_data(ds, [s])
+            X4, y, _ = para4.get_data(ds, [s])
         except Exception as e:
             print(f"  S{s}: skipped ({type(e).__name__})"); missing.append(s); continue
         freqs_all = sorted({float(v) for v in np.unique(y)})
@@ -38,8 +41,8 @@ def run(subjects=tuple(range(1, 10)), win_s=2.0, n_targets=4, require_n=9):
         sub_freqs = [freqs_all[i] for i in pick]
         yi = np.array([freqs_all.index(min(freqs_all, key=lambda z: abs(z - float(v)))) for v in y])
         mask = np.isin(yi, pick)
-        # 2 s window + 4-class subset + 4 Unicorn-posterior channels = full live regime
-        Xs, ys = X[mask][:, UNICORN4, :nsamp], yi[mask]
+        # 2 s window + 4-class subset (channels already restricted to Unicorn-4 by paradigm)
+        Xs, ys = X4[mask][:, :, :nsamp], yi[mask]
         lut = {p: k for k, p in enumerate(pick)}
         correct = np.mean([classify(Xs[k], freqs=sub_freqs, fs=fs)[0] == lut[ys[k]]
                            for k in range(len(Xs))])

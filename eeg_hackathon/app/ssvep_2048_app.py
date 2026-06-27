@@ -83,7 +83,7 @@ class EEGSource:
         return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
 
 
-def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
+def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
     import pygame
     pygame.init()
     W = 560; H = 760
@@ -107,27 +107,49 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
     print(f"[SSVEP] display refresh={refresh}Hz -> flicker freqs (Hz): "
           + ", ".join(f"{ARROWS[i]}={freqs[i]:.3f}(every {halves[i]}f)" for i in range(4)))
     assert len(set(round(f, 4) for f in freqs)) == 4, "flicker frequencies collide!"
+    if notch == "auto":                       # infer mains from locale (US tz -> 60, else 50)
+        import time as _t
+        tz = " ".join(_t.tzname).upper()
+        notch = 60.0 if any(z in tz for z in ("EST", "EDT", "CST", "CDT", "MST", "MDT",
+                                              "PST", "PDT", "AKST", "HST")) else 50.0
+        print(f"[SSVEP] mains notch AUTO -> {notch:.0f}Hz (tz={_t.tzname}). "
+              f"Override with --notch 50/60 if wrong.")
+    print(f"[SSVEP] >>> ACTIVE MAINS NOTCH = {notch or 'OFF'} Hz <<< "
+          f"(pass --notch 60 in a 60 Hz region, --notch 50 in EU)")
     game = Game2048()
     model = None
     if model_path:
         import numpy as _np
         model = dict(_np.load(model_path, allow_pickle=True).item()) if model_path.endswith('.npy') else None
+        if model is not None:                 # guard: TRCA templates must match THIS monitor's freqs
+            mf = [round(float(f), 2) for f in model.get("freqs", [])]
+            lf = [round(float(f), 2) for f in freqs]
+            if mf and mf != lf:
+                print(f"[SSVEP] WARNING: TRCA model freqs {mf} != this monitor's {lf} "
+                      f"(calibration recorded on a different refresh). Falling back to FBCCA.")
+                model = None
+            elif not mf:
+                print("[SSVEP] WARNING: TRCA model has no stamped freqs; cannot verify match. "
+                      "Re-record with the current ssvep_ab.py if decode is poor.")
     src = EEGSource(synthetic=synthetic, model=model, notch=notch)
 
     board_px, margin, top = 480, 40, 200
     cell = board_px // SIZE
     from collections import deque
+    import threading
     gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
-    dwell = deque(maxlen=3)  # require 3 confident agreeing windows (overlap 75% -> need more)
-    last_decode = [0.0]; scores = [np.zeros(4)]
     step_s = 0.5            # overlapping re-decode cadence (window stays win_s long)
     refractory_s = 1.0      # after a lock, ignore decodes this long (no runaway double-moves)
     frame = 0
-    from collections import deque as _dq
-    dts = _dq(maxlen=refresh)   # ~1s of per-frame dt for a frame-drop / refresh-mismatch check
+    dts = deque(maxlen=refresh)  # ~1s of per-frame dt for a frame-drop / refresh-mismatch check
     drop_warn = [""]
+    # worker<->render shared slots (single-assignment under the GIL; move handed off via lock)
+    scores = [np.zeros(4)]      # latest CCA scores (for display)
     state = ["listening…"]      # per-decode operator feedback (abstain/confidence/lock)
     last_lock = [0.0]           # wall time of last successful move (for the no-lock hint)
+    pending = [None]            # a decoded move waiting to be applied on the main thread
+    move_lock = threading.Lock()
+    run_decode = [True]
 
     def draw_board():
         for r in range(SIZE):
@@ -152,6 +174,43 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
                                  (rect[0]-3,rect[1]-3,rect[2]+6,rect[3]+6),border_radius=4)
             pygame.draw.rect(screen, col, rect, border_radius=4)
 
+    # ---- DECODE WORKER THREAD ----------------------------------------------------------
+    # The ~25ms FBCCA must NOT run on the render thread: if it did, every ~0.5s decode would
+    # overrun the 16.7ms frame budget and smear the exact flicker frequency the decoder
+    # depends on. So decode runs here in the background; the render loop only reads results.
+    def decode_worker():
+        dwell = deque(maxlen=3)      # 3 agreeing confident windows (75% overlap -> need more)
+        w_last_lock = 0.0
+        while run_decode[0]:
+            now = time.time()
+            if now - w_last_lock < refractory_s:        # refractory: no runaway double-moves
+                state[0] = "locked (refractory)"; time.sleep(0.05); continue
+            win = src.window(win_s, gaze_idx[0], freqs=freqs)
+            if win is None:
+                time.sleep(step_s); continue
+            if src.bad:                                  # bad electrode contact -> don't decode
+                dwell.clear(); state[0] = "BAD CONTACT"; time.sleep(step_s); continue
+            if src.model is not None:
+                from ssvep_trca import classify_trca
+                idx, sc = classify_trca(win, src.model)
+            else:
+                idx, sc = classify(win, freqs=freqs)
+            scores[0] = sc
+            order = np.argsort(sc)[::-1]
+            margin_ok = (sc[order[0]] - sc[order[1]]) >= 0.15 * (abs(sc[order[0]]) + 1e-9)
+            # IDENTICAL decision logic synthetic + live: the DECODER decides (can genuinely miss).
+            dwell.append(idx if margin_ok else -1)
+            if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
+                with move_lock: pending[0] = idx        # hand the move to the main thread
+                state[0] = f"LOCKED: {ARROWS[idx].upper()}"
+                dwell.clear(); w_last_lock = now; last_lock[0] = now
+            elif margin_ok:
+                state[0] = f"listening… ({ARROWS[idx]}?)"
+            else:
+                state[0] = "low confidence"
+            time.sleep(step_s)
+    _decoder = threading.Thread(target=decode_worker, daemon=True); _decoder.start()
+
     running = True
     while running:
         for e in pygame.event.get():
@@ -161,41 +220,13 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
                 km = {pygame.K_UP:0,pygame.K_DOWN:1,pygame.K_LEFT:2,pygame.K_RIGHT:3}
                 if e.key in km:
                     gaze_idx[0] = km[e.key]; game.move(ARROW_DIRS[km[e.key]])
-        # EEG decode on OVERLAPPING windows: re-decode every step_s using the last
-        # win_s of data, so the dwell gate accumulates evidence continuously and a
-        # move lands in ~1-2s, not ~4-6s (non-overlapping). Same gate for live + synth.
-        now = time.time()
-        if now - last_lock[0] < refractory_s:     # refractory: no runaway double-moves
-            state[0] = "locked (refractory)"
-        elif now - last_decode[0] >= step_s:
-            last_decode[0] = now
-            win = src.window(win_s, gaze_idx[0], freqs=freqs)
-            if win is not None and src.bad:
-                dwell.clear()                 # bad electrode contact -> refuse to decode
-                state[0] = "BAD CONTACT"
-            elif win is not None:
-                if src.model is not None:
-                    from ssvep_trca import classify_trca
-                    idx, sc = classify_trca(win, src.model)
-                else:
-                    idx, sc = classify(win, freqs=freqs)
-                scores[0] = sc
-                order = np.argsort(sc)[::-1]
-                margin_ok = (sc[order[0]] - sc[order[1]]) >= 0.15 * (abs(sc[order[0]]) + 1e-9)
-                # IDENTICAL decision logic for synthetic + live: the DECODER decides.
-                # (synthetic injects the gazed target, but it must still be decoded
-                #  through the confidence+dwell gate, so the showcase can genuinely miss.)
-                dwell.append(idx if margin_ok else -1)
-                if margin_ok and len(dwell) == dwell.maxlen and len(set(dwell)) == 1:
-                    if game.can_move(): game.move(ARROW_DIRS[idx])
-                    dwell.clear(); last_lock[0] = now
-                    state[0] = f"LOCKED: {ARROWS[idx].upper()}"
-                    if src.synthetic:        # advance to the next target after a real hit
-                        gaze_idx[0] = (gaze_idx[0] + 1) % 4
-                elif margin_ok:
-                    state[0] = f"listening… ({ARROWS[idx]}?)"
-                else:
-                    state[0] = "low confidence"
+        # apply any worker-decoded move on the MAIN thread (game is mutated only here)
+        with move_lock:
+            mv = pending[0]; pending[0] = None
+        if mv is not None and game.can_move():
+            game.move(ARROW_DIRS[mv])
+            if src.synthetic:                 # advance to the next target after a real hit
+                gaze_idx[0] = (gaze_idx[0] + 1) % 4
         screen.fill((250,248,239))
         title = big.render(f"SSVEP 2048   score {game.score}", True, (119,110,101))
         screen.blit(title, (margin, 30))
@@ -235,6 +266,8 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0, refresh=None):
                                 f"{drops*100:.0f}% late — flicker unreliable; pass --refresh / close apps")
             else:
                 drop_warn[0] = ""
+    run_decode[0] = False                 # stop the decode worker
+    _decoder.join(timeout=1.0)
     pygame.quit()
 
 
@@ -243,7 +276,9 @@ if __name__ == "__main__":
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--model", default=None, help="TRCA calibration .npy (calibrated decode)")
-    ap.add_argument("--notch", type=float, default=50.0, help="mains notch Hz (50 EU / 60 US; 0=off)")
+    ap.add_argument("--notch", default="auto",
+                    help="mains notch Hz: 'auto' (infer from locale), 50 (EU), 60 (US), or 0=off")
     ap.add_argument("--refresh", type=int, default=None, help="monitor refresh Hz override (else auto-detect)")
     a = ap.parse_args()
-    run(synthetic=not a.live, model_path=a.model, notch=(a.notch or None), refresh=a.refresh)
+    notch = a.notch if a.notch == "auto" else (float(a.notch) or None)
+    run(synthetic=not a.live, model_path=a.model, notch=notch, refresh=a.refresh)

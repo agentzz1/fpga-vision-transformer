@@ -17,25 +17,31 @@ from ssvep_cca import classify
 
 # Nakanishi order: PO7,PO3,POz,PO4,PO8,O1,Oz,O2 -> Unicorn-posterior-equiv indices:
 #   PO7(0), PO8(4), Oz(6), POz~=Pz(2)
-UNICORN4 = [0, 4, 6, 2]
+# Unicorn-posterior-equivalent channels, selected BY NAME (POz~=Pz) — robust to MOABB
+# channel reordering, unlike a hardcoded positional index.
+UNICORN4_NAMES = ["PO7", "PO8", "Oz", "POz"]
 
 
 def run(subjects=tuple(range(1, 10)), require_n=9):
     from moabb.datasets import Nakanishi2015
     from moabb.paradigms import SSVEP
-    ds = Nakanishi2015(); para = SSVEP(n_classes=12); fs = 256
+    ds = Nakanishi2015()
+    para = SSVEP(n_classes=12)
+    para4 = SSVEP(n_classes=12, channels=UNICORN4_NAMES)  # paradigm subsets by NAME
+    fs = 256
     print("FBCCA (0-train): all-8-occipital vs Unicorn-4-posterior-equiv "
-          "[PO7,PO8,Oz,POz], Nakanishi2015 12-class:\n")
+          f"{UNICORN4_NAMES} (by name), Nakanishi2015 12-class:\n")
     a8, a4, missing = [], [], []
     for s in subjects:
         try:
             X, y, _ = para.get_data(ds, [s])
+            X4, _, _ = para4.get_data(ds, [s])
         except Exception as e:
             print(f"  S{s}: skipped ({type(e).__name__})"); missing.append(s); continue
         freqs = sorted({float(v) for v in np.unique(y)})
         yi = np.array([freqs.index(min(freqs, key=lambda z: abs(z-float(v)))) for v in y])
         c8 = np.mean([classify(X[k], freqs=freqs, fs=fs)[0] == yi[k] for k in range(len(X))])
-        c4 = np.mean([classify(X[k][UNICORN4], freqs=freqs, fs=fs)[0] == yi[k] for k in range(len(X))])
+        c4 = np.mean([classify(X4[k], freqs=freqs, fs=fs)[0] == yi[k] for k in range(len(X4))])
         a8.append(c8); a4.append(c4)
         print(f"  S{s}: 8-occ={c8:.2f}  Unicorn-4={c4:.2f}")
     print(f"\n  8-occipital      : {np.mean(a8):.2f} +/- {np.std(a8):.2f}  (upper bound)")

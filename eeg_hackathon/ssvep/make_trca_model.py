@@ -15,6 +15,14 @@ def main(npz="cal.npz", out="cal.npy"):
     z = np.load(npz); X, y = z["trials"], z["labels"]
     by_cls = [X[y == c] for c in sorted(set(y.tolist()))]
     model = calibrate(by_cls)
+    # Stamp the EXACT flicker frequencies the recording used (from ssvep_ab.record ->
+    # achievable_freqs(refresh)), so the live app can assert model freqs == monitor freqs
+    # and fall back to FBCCA on a mismatch instead of silently decoding wrong templates.
+    if "freqs" in z:
+        model["freqs"] = [float(f) for f in z["freqs"]]
+        print(f"  stamped recording freqs: {[round(f,2) for f in model['freqs']]}")
+    else:
+        print("  WARNING: cal.npz has no 'freqs' — cannot verify model matches the live monitor.")
     np.save(out, model, allow_pickle=True)
     print(f"saved TRCA model -> {out}  ({len(by_cls)} classes)")
 
