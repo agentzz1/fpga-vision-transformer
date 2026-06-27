@@ -80,8 +80,8 @@ def _detect_refresh(default=60):
         return default
 
 
-def run_live(window_s=2.0, step_s=0.4, refresh=None):
-    from acquire import LSLAcquirer
+def run_live(window_s=2.0, step_s=0.4, refresh=None, notch=50.0):
+    from acquire import LSLAcquirer, channel_quality, notch_filter
     from ssvep_cca import achievable_freqs
     if refresh is None:
         refresh = _detect_refresh()
@@ -89,17 +89,24 @@ def run_live(window_s=2.0, step_s=0.4, refresh=None):
     acq = LSLAcquirer().start()
     freqs, _ = achievable_freqs(refresh, n=4)
     ctrl = SSVEPController(freqs=freqs)
-    print(f"SSVEP->2048 live (refresh={refresh}Hz, freqs={[round(f,2) for f in freqs]}). "
-          f"Look at an arrow. Channels={OCCIPITAL}. Ctrl-C to stop.")
+    print(f"SSVEP->2048 live (refresh={refresh}Hz, freqs={[round(f,2) for f in freqs]}, "
+          f"notch={notch}Hz). Look at an arrow. Channels={OCCIPITAL}. Ctrl-C to stop.")
     try:
         while True:
             data, _ = acq.get_data(seconds=window_s)
             if data.shape[1] >= int(window_s * FS):
                 win = data[occ, -int(window_s * FS):]
-                arrow = ctrl.step(win)
-                if arrow:
-                    print(f"  -> {arrow}")
-                    _press(arrow)
+                ok, reasons = channel_quality(win)        # electrode-contact gate
+                if not ok.all():
+                    bad = [OCCIPITAL[i] for i, g in enumerate(ok) if not g]
+                    print(f"  [BAD CONTACT: {','.join(bad)}] — fix electrodes, not decoding")
+                else:
+                    if notch:
+                        win = notch_filter(win, fs=FS, freq=notch)   # kill 50/60Hz mains
+                    arrow = ctrl.step(win)
+                    if arrow:
+                        print(f"  -> {arrow}")
+                        _press(arrow)
             time.sleep(step_s)
     except KeyboardInterrupt:
         acq.stop()
@@ -124,5 +131,6 @@ if __name__ == "__main__":
     ap.add_argument("--simulate", action="store_true")
     ap.add_argument("--refresh", type=int, default=None,
                     help="monitor refresh Hz (must match ssvep_stim); auto-detected if omitted")
+    ap.add_argument("--notch", type=float, default=50.0, help="mains notch Hz (50 EU/60 US; 0=off)")
     a = ap.parse_args()
-    run_simulate() if a.simulate else run_live(refresh=a.refresh)
+    run_simulate() if a.simulate else run_live(refresh=a.refresh, notch=(a.notch or None))

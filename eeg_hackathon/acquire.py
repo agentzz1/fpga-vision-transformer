@@ -23,6 +23,37 @@ from eeg_common import (
 )
 
 
+# --------------------------- signal-quality gate --------------------------- #
+def channel_quality(window, flat_uv=0.5, sat_uv=200.0):
+    """Per-channel electrode-contact check for a live window (ch, samples), units uV.
+
+    Returns (ok_mask, reasons): ok_mask[i] False if channel i is flat (dead/disconnected),
+    railed/saturated, or NaN/Inf. The #1 dry-electrode demo failure is a lifting electrode;
+    this surfaces it instead of silently decoding noise.
+    """
+    X = np.asarray(window, float)
+    sd = X.std(axis=1)
+    pp = X.max(axis=1) - X.min(axis=1)
+    ok, reasons = [], []
+    for i in range(X.shape[0]):
+        if not np.all(np.isfinite(X[i])):
+            ok.append(False); reasons.append("NaN/Inf")
+        elif sd[i] < flat_uv:
+            ok.append(False); reasons.append("flat")
+        elif pp[i] > 2 * sat_uv:
+            ok.append(False); reasons.append("railed")
+        else:
+            ok.append(True); reasons.append("ok")
+    return np.array(ok), reasons
+
+
+def notch_filter(X, fs=FS, freq=50.0, q=30.0):
+    """Apply a mains notch (50 or 60 Hz) to a (ch, samples) array."""
+    from scipy.signal import iirnotch, filtfilt
+    b, a = iirnotch(freq / (fs / 2), q)
+    return filtfilt(b, a, np.asarray(X, float), axis=-1)
+
+
 # ----------------------------- event helpers ------------------------------- #
 def presses_to_events(press_times, timestamps, label: int = LABEL_SPACE) -> np.ndarray:
     """Map press timestamps (sec, same clock as `timestamps`) -> events (n,2)."""
@@ -151,6 +182,20 @@ class LSLAcquirer:
         self._run = False
         self._thread = None
         self._inlet = None
+        self._ch_idx = list(range(EEG_CH))   # set properly in _resolve (by label if available)
+
+    def _stream_labels(self, info):
+        """Read per-channel labels from the LSL stream description XML, if present."""
+        try:
+            labels, ch = [], info.desc().child("channels").child("channel")
+            for _ in range(info.channel_count()):
+                if ch.empty():
+                    break
+                labels.append(ch.child_value("label") or ch.child_value("name") or "")
+                ch = ch.next_sibling()
+            return labels
+        except Exception:
+            return []
 
     def _resolve(self):
         from pylsl import resolve_streams, StreamInlet
@@ -165,6 +210,27 @@ class LSLAcquirer:
                 chosen = s; break
         chosen = chosen or max(streams, key=lambda s: s.channel_count())
         self._inlet = StreamInlet(chosen, max_buflen=60)
+        info = self._inlet.info()
+        # validate sampling rate (wrong/IRREGULAR srate => every freq reference is wrong)
+        srate = info.nominal_srate()
+        if srate and abs(srate - FS) > 1.0:
+            print(f"[LSL] WARNING: stream srate={srate} Hz != expected FS={FS} Hz. "
+                  f"Frequency references will be MISTUNED — set the Unicorn LSL rate to {FS}.")
+        # map channels by LABEL when available; fall back to positional first-8
+        labels = self._stream_labels(info)
+        idx = []
+        if labels:
+            lut = {l.strip().lower(): i for i, l in enumerate(labels)}
+            for name in CHANNEL_NAMES:
+                idx.append(lut.get(name.lower()))
+        if labels and all(i is not None for i in idx):
+            self._ch_idx = idx
+            mapping = ", ".join(f"{n}->#{i}" for n, i in zip(CHANNEL_NAMES, idx))
+            print(f"[LSL] '{info.name()}' channel map (by label): {mapping}")
+        else:
+            self._ch_idx = list(range(EEG_CH))
+            print(f"[LSL] '{info.name()}': no usable channel labels; using POSITIONAL "
+                  f"first {EEG_CH} channels as {CHANNEL_NAMES}. VERIFY this matches your cap!")
         return chosen
 
     def start(self):
@@ -177,7 +243,7 @@ class LSLAcquirer:
             chunk, stamps = self._inlet.pull_chunk(timeout=0.2, max_samples=64)
             if not chunk:
                 continue
-            arr = np.asarray(chunk, dtype=np.float32)[:, :EEG_CH].T
+            arr = np.asarray(chunk, dtype=np.float32)[:, self._ch_idx].T
             stamps = np.asarray(stamps, dtype=TIME_DTYPE); k = arr.shape[1]
             with self._lock:
                 self._buf = np.roll(self._buf, -k, axis=1); self._buf[:, -k:] = arr

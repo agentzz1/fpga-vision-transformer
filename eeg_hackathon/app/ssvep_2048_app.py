@@ -31,10 +31,13 @@ TILE_COLORS = {
 
 class EEGSource:
     """Live LSL occipital source, or synthetic generator keyed to a 'gaze' target."""
-    def __init__(self, synthetic=True, model=None):
+    def __init__(self, synthetic=True, model=None, notch=50.0):
         self.synthetic = synthetic
         self.model = model            # optional TRCA model dict -> calibrated decode
         self.rng = np.random.default_rng(0)
+        self.notch = notch            # mains notch (50 EU / 60 US); None to disable
+        self.bad = []                 # last live window's bad-channel reasons (per occ ch)
+        self._occ_names = ["Oz", "PO7", "PO8", "Pz"]
         self._acq = None; self._occ = None
         if not synthetic:
             try:
@@ -47,13 +50,23 @@ class EEGSource:
     def window(self, win_s, gaze_idx=None, freqs=FREQS):
         if not self.synthetic and self._acq is not None:
             data, _ = self._acq.get_data(seconds=win_s)
-            return data[self._occ, -int(win_s*FS):] if data.shape[1] >= int(win_s*FS) else None
+            need = int(win_s*FS)
+            if data.shape[1] < need:
+                return None
+            win = data[self._occ, -need:]
+            from acquire import channel_quality, notch_filter
+            ok, reasons = channel_quality(win)          # electrode-contact gate
+            self.bad = [self._occ_names[i] for i, good in enumerate(ok) if not good]
+            if self.notch:
+                win = notch_filter(win, fs=FS, freq=self.notch)   # kill 50/60Hz mains
+            return win
         # synthetic: emit SSVEP at the gazed arrow's ACTUAL (refresh-locked) frequency
+        self.bad = []
         f = freqs[gaze_idx if gaze_idx is not None else self.rng.integers(len(freqs))]
         return synth_ssvep(f, win_s, n_ch=4, snr=0.5, rng=self.rng)
 
 
-def run(synthetic=True, win_s=2.0, model_path=None):
+def run(synthetic=True, win_s=2.0, model_path=None, notch=50.0):
     import pygame
     pygame.init()
     W = 560; H = 760
@@ -81,7 +94,7 @@ def run(synthetic=True, win_s=2.0, model_path=None):
     if model_path:
         import numpy as _np
         model = dict(_np.load(model_path, allow_pickle=True).item()) if model_path.endswith('.npy') else None
-    src = EEGSource(synthetic=synthetic, model=model)
+    src = EEGSource(synthetic=synthetic, model=model, notch=notch)
 
     board_px, margin, top = 480, 40, 200
     cell = board_px // SIZE
@@ -131,7 +144,9 @@ def run(synthetic=True, win_s=2.0, model_path=None):
         if now - last_decode[0] >= step_s:
             last_decode[0] = now
             win = src.window(win_s, gaze_idx[0], freqs=freqs)
-            if win is not None:
+            if win is not None and src.bad:
+                dwell.clear()                 # bad electrode contact -> refuse to decode
+            elif win is not None:
                 if src.model is not None:
                     from ssvep_trca import classify_trca
                     idx, sc = classify_trca(win, src.model)
@@ -159,6 +174,9 @@ def run(synthetic=True, win_s=2.0, model_path=None):
             f"{ARROWS[i]}={sc[i]:.2f}" for i in range(4)), True, (150,140,130))
         screen.blit(sct, (margin, 100))
         draw_board(); draw_flickers(frame)   # integer frame count -> refresh-locked parity
+        if src.bad:                          # live electrode-contact warning
+            warn = big.render("CHECK ELECTRODES: " + ",".join(src.bad), True, (200,60,60))
+            screen.blit(warn, (margin, 130))
         if not game.can_move():
             go = big.render("GAME OVER", True, (200,60,60)); screen.blit(go,(margin,H-40))
         pygame.display.flip(); clock.tick(refresh); frame += 1
@@ -170,5 +188,6 @@ if __name__ == "__main__":
     ap.add_argument("--synthetic", action="store_true")
     ap.add_argument("--live", action="store_true")
     ap.add_argument("--model", default=None, help="TRCA calibration .npy (calibrated decode)")
+    ap.add_argument("--notch", type=float, default=50.0, help="mains notch Hz (50 EU / 60 US; 0=off)")
     a = ap.parse_args()
-    run(synthetic=not a.live, model_path=a.model)
+    run(synthetic=not a.live, model_path=a.model, notch=(a.notch or None))

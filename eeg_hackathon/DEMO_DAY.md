@@ -14,7 +14,10 @@ python run.py 7     # motor pipeline demo — proves the kit runs (no hardware)
 Why it wins: Pontifex & Coffman (2023) found the Unicorn gives **valid spectral measures
 even without gel**, while its ERPs need conductive solution — so frequency-tagged SSVEP is
 the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
-1. Unicorn Suite → start **Unicorn LSL**. Check Oz/PO7/PO8/Pz are clean.
+1. Unicorn Suite → start **Unicorn LSL**. The app now **enforces electrode quality in
+   code**: it maps channels by LSL label (not just position), applies a 50/60 Hz mains
+   notch (`--notch 60` in the US), and shows a red **"CHECK ELECTRODES: PO7…"** banner +
+   refuses to decode if a channel is flat/railed. Watch the startup channel-map print.
 2. `python run.py 4` → the app **auto-detects your monitor's refresh and prints the 4 exact
    flicker frequencies** (e.g. 60 Hz → 15/10/7.5/6 Hz; 120 Hz → 15/12/10/8.57 Hz). The same
    values drive both the flicker and the decoder, so they can never diverge.
