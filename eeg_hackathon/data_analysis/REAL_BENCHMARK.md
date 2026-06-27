@@ -39,12 +39,21 @@ incl. the Unicorn-8ch subset). FBCSP: `python data_analysis/fbcsp.py`.
 Dataset: **Nakanishi2015** — real **8-channel** SSVEP, 256 Hz, **12 flicker targets**.
 Decoder: **training-free FBCCA** (no calibration).
 
-*Montage caveat:* Nakanishi's 8 electrodes are an **occipital cluster** (PO/O region),
-not the exact Unicorn montage (Fz, C3, Cz, C4, **Pz, PO7, Oz, PO8**). It is a strong
-*spectral* analog — same channel count, same posterior SSVEP sources the Unicorn's
-Pz/PO7/Oz/PO8 also capture — but it is not Unicorn-recorded data. We have **no real
-Unicorn SSVEP recording**; that is the one gap between this evidence and the live headset
-(and the reason FBCCA/SSVEP, the spectral paradigm, was chosen — it transfers best).
+*Montage — quantified, not just caveated:* Nakanishi's 8 electrodes are an **occipital
+cluster** (PO7,PO3,POz,PO4,PO8,O1,Oz,O2); the Unicorn has only **4 posterior** channels
+(Pz,PO7,Oz,PO8). So we ran a **montage ablation** restricting Nakanishi to the 4
+Unicorn-posterior-equivalent electrodes (PO7,PO8,Oz,POz≈Pz):
+
+| Montage | FBCCA (0-train, n=9) |
+|---|---|
+| all-8 occipital (upper bound) | 0.93 ± 0.12 |
+| **Unicorn-4-posterior (headset-realistic)** | **0.91 ± 0.16** |
+
+Dropping to the Unicorn's 4 posterior channels costs only **~2 points** — SSVEP lives at
+PO/O, which the Unicorn has. **Quote 0.91 as the headset-realistic 12-class number** (source:
+`ssvep/RUN_LOG_ssvep_montage.txt`). Remaining honest gap: this is still Nakanishi-recorded,
+not Unicorn-recorded data — we have **no real Unicorn SSVEP recording** (the one gap to the
+live headset, and a reason FBCCA/SSVEP, the spectral paradigm, was chosen — it transfers best).
 
 | Subject | Targets | FBCCA acc (0-train) | Chance |
 |---|---|---|---|

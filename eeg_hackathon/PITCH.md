@@ -15,7 +15,7 @@ public EEG**, and we picked every method by **measured real-data performance, no
 ## Why we win — evidence, not claims (all on REAL public datasets)
 | Paradigm | Real dataset (8-ch where possible) | Result |
 |---|---|---|
-| **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class, n=9 | FBCCA **0.93** → **TRCA 0.99** (0/~100-s train) |
+| **SSVEP (our game)** | Nakanishi2015, 12-class, n=9 | FBCCA **0.93** (0-train) → **TRCA 0.99**; **0.91 on the Unicorn's 4 posterior ch** |
 | Motor Imagery | PhysioNet, n=8, 8-ch 0.64 ≈ 64-ch 0.65 (CSP) | 8 ch keep the full MI signal |
 | P300 speller | BNCI2014-009 (n=5) | xDAWN+LDA **AUC 0.94 ± 0.05** (leak-free CV) |
 
