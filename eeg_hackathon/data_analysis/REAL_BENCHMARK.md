@@ -119,6 +119,12 @@ Unicorn-8ch AUC **0.94 ± 0.05** (n=5) confirms the P300 pipeline is SOTA-compet
 | Motor Imagery | PhysioNet eegmmidb (8-ch, n=8) | public, gel 64-cap subset — NOT Unicorn | acc, 2-class | **0.64 ± 0.18** |
 | P300 | BNCI2014-009 (8-ch, n=5) | public, gel 16-cap subset — NOT Unicorn | AUC, leak-free | **0.94 ± 0.05** |
 
+**Live-regime optimism note:** the 4 targets in the live-regime row are picked **well-separated**
+across the band (the favorable case). Adjacent flicker frequencies are more confusable, so 0.90
+is a mild upper bound for an arbitrary 4-arrow layout. On a **60 Hz** screen the achievable set
+[15,10,7.5,6] has a harmonic collision (15 = 2×7.5) — the app warns and recommends a **120 Hz**
+display (clean set 15/12/10/8.57); see `achievable_freqs` / `harmonic_collisions`.
+
 **Honest hardware caveat:** *every* row is a public dataset with a **channel-subset proxy** for
 the Unicorn montage — **none is Unicorn-recorded**. The dominant real-world SSVEP penalty
 (dry electrodes + real monitor flicker) is therefore **unmodeled**; treat these as upper

@@ -19,7 +19,8 @@ the robust paradigm; 4 arrows ↔ 4 frequencies; zero training.
    flickering arrows and **prints the 4 refresh-locked frequencies** (60 Hz → 15/10/7.5/6;
    120 Hz → 15/12/10/8.57). Same values drive flicker AND decoder, so they can't diverge.
 3. **Optional short TRCA calibration** (`python run.py 5`): zero-training FBCCA already
-   averages **0.93** on real 8-ch 12-class SSVEP (n=9); a ~100-s calibration rescues weak
+   averages **0.90 at the headset-realistic live regime** (4 targets, 2 s, 4 posterior ch; n=9;
+   the 12-class 8-occipital 0.93 is an upper bound); a ~100-s calibration rescues weak
    responders → ~0.99. Use TRCA live for weak responders; FBCCA is the instant fallback.
 4. `python run.py 2` (**LIVE game**, = `app/ssvep_2048_app.py`) → play 2048 by looking at
    arrows. The **electrode-quality enforcement lives HERE in the game** (not the step-2 stim):
@@ -57,5 +58,6 @@ synthetic showcase (`python run.py 1`) — visibly the same app, explained hones
 ## 90-second judge pitch
 "Consumer 8-ch EEG, zero-training SSVEP → real-time game control. We chose SSVEP because
 the Unicorn's spectral signal is reliable where its ERPs aren't (cite Pontifex 2023), got
-FBCCA 0.93 offline on real 8-ch data, and add an optional TRCA calibration (the algorithm behind the highest-ITR
-EEG BCI). Same toolkit also delivers SOTA P300 & motor-imagery analysis."
+~0.90 zero-training on the Unicorn-realistic 4-channel/2-s/4-target regime (real public data;
+0.93 is the occipital-cap upper bound), and add an optional TRCA calibration (the algorithm
+behind the highest-ITR EEG BCI). Same toolkit also delivers SOTA P300 & motor-imagery analysis."

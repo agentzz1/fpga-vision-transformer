@@ -51,6 +51,21 @@ def achievable_freqs(refresh: float, n: int = 4) -> Tuple[List[float], List[int]
     return freqs, halves
 
 
+def harmonic_collisions(freqs: List[float], n_harm: int = N_HARMONICS, tol: float = 0.3):
+    """List (i, j, k) where target i ~= k*target j (k=2..n_harm). A low-order harmonic
+    of one flicker frequency landing on another is a real SSVEP confusion source (e.g. on
+    a 60Hz screen 15Hz == 2*7.5Hz). Used to warn the operator / prefer a 120Hz display."""
+    out = []
+    for i, fi in enumerate(freqs):
+        for j, fj in enumerate(freqs):
+            if i == j:
+                continue
+            for k in range(2, n_harm + 1):
+                if abs(fi - k * fj) <= tol:
+                    out.append((i, j, k))
+    return out
+
+
 def reference(freq: float, n: int, fs: int = FS, n_harm: int = N_HARMONICS) -> np.ndarray:
     """(n, 2*n_harm) sine/cosine reference bank for one frequency."""
     t = np.arange(n) / fs

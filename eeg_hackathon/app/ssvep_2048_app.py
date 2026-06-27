@@ -107,6 +107,14 @@ def run(synthetic=True, win_s=2.0, model_path=None, notch="auto", refresh=None):
     print(f"[SSVEP] display refresh={refresh}Hz -> flicker freqs (Hz): "
           + ", ".join(f"{ARROWS[i]}={freqs[i]:.3f}(every {halves[i]}f)" for i in range(4)))
     assert len(set(round(f, 4) for f in freqs)) == 4, "flicker frequencies collide!"
+    from ssvep_cca import harmonic_collisions
+    _hc = harmonic_collisions(freqs)
+    if _hc:                                    # e.g. 60Hz -> 15Hz == 2*7.5Hz
+        pairs = ", ".join(f"{ARROWS[i]}({freqs[i]:.1f})~={k}x{ARROWS[j]}({freqs[j]:.1f})"
+                          for i, j, k in _hc)
+        print(f"[SSVEP] WARNING: harmonic collisions at {refresh}Hz [{pairs}] — these arrows are "
+              f"confusable. PREFER A 120Hz DISPLAY (clean set 15/12/10/8.57). Pass --refresh 120 "
+              f"if you have one.")
     if notch == "auto":                       # infer mains from locale (US tz -> 60, else 50)
         import time as _t
         tz = " ".join(_t.tzname).upper()
