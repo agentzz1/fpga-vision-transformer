@@ -10,7 +10,9 @@ honest, real-EEG picture — synthetic 100%s mean nothing; these are what the me
 | 64-ch (lab cap) | 0.65 ± 0.16 | 0.59 ± 0.20 | 0.61 ± 0.15 | 0.53 ± 0.11 |
 | **Unicorn 8-ch subset** | **0.64 ± 0.18** | **0.62 ± 0.18** | 0.64 ± 0.18 | 0.51 ± 0.09 |
 
-*(fs=160 Hz; 5-fold CV; FBCSP & EEGNet actually run, not estimated. Source: `RUN_LOG_mi.txt`.)*
+*(fs=160 Hz; 5-fold CV; FBCSP & EEGNet actually run, not estimated. Source: `RUN_LOG_mi.txt`.
+EEGNet now seeds torch + uses deterministic algorithms, but its 0.51 is **indicative**
+(seed/BLAS/hardware-sensitive) — it's the worst method here regardless, not a precise headline.)*
 
 Per-subject Unicorn-8ch CSP spans **0.29 → 0.91** (S3=0.29 weak responder vs S7=0.91); the
 large std is real between-subject variance — "BCI illiteracy" affects ~10–30% of people.

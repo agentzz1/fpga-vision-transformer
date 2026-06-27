@@ -3,14 +3,17 @@
 ## The one-liner
 We control a real game with brain signals on a **consumer 8-channel Unicorn** — using
 the **same SSVEP paradigm behind the world's highest-bitrate BCIs**, validated on **real
-public EEG**, and we picked every method by **measured real-data performance, not hype.**
+public EEG (Unicorn-montage proxy — see hardware caveat)**, and we picked every method by
+**measured real-data performance, not hype.**
 
 ## The demo (60–90 s, live)
 1. Put on the Unicorn → start Unicorn LSL.
 2. Look at a flickering arrow → **2048 moves by brain**. (4 frequencies ↔ 4 arrows.)
-3. **Headset-realistic** zero-training FBCCA = **0.90** (live regime: 4 targets, 2 s, the
+3. **Headset-realistic** zero-training FBCCA = **0.90*** (live regime: 4 targets, 2 s, the
    Unicorn's 4 posterior channels; n=9) — and a short ~100-s TRCA calibration rescues weak
    responders toward ~0.99. (The rosier 0.93 is the 12-class 8-occipital-cap *upper bound*.)
+   *\*0.90 uses well-separated freqs + an occipital-only POz≈Pz proxy, no real Unicorn data — see
+   REAL_BENCHMARK.md caveats. It is an upper bound, not a headset-measured number.*
 4. (Backup) pre-recorded clip; (fallback) synthetic showcase — demo never dies.
 
 ## Why we win — evidence, not claims (all on REAL public datasets)
@@ -21,7 +24,8 @@ public EEG**, and we picked every method by **measured real-data performance, no
 | P300 speller | BNCI2014-009 (n=5) | xDAWN+LDA **AUC 0.94 ± 0.05** (leak-free CV) |
 
 ## Three insights that show depth (judges reward these)
-1. **8 channels retain the full MI signal** here (8-ch 0.64 ≈ 64-ch 0.65, n=8) — the signal is
+1. **8 channels lose no measurable MI signal** here (8-ch 0.64 vs 64-ch 0.65, n=8 — the gap is
+   within ±0.18 std, i.e. statistically indistinguishable) — the signal is
    sensorimotor/occipital, which the Unicorn has. The headset isn't the bottleneck; trial count is.
 2. **The Unicorn's spectral signal is reliable where its ERPs aren't** (Pontifex 2023),
    which is exactly *why* we chose SSVEP over P300/readiness-potential for live control.

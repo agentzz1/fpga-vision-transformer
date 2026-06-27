@@ -18,6 +18,7 @@ OPTIONS = [
     ("Demo (no HW): motor pipeline end-to-end",               "run_demo.py", []),
     ("Data Analysis: Motor Imagery (CSP+LDA)",                "data_analysis/mi_pipeline.py", []),
     ("Data Analysis: P300 speller (xDAWN+LDA)",               "data_analysis/p300_pipeline.py", []),
+    ("Self-test: LIVE LSL decode path via a mock outlet (no headset)", "ssvep/selftest_live.py", []),
 ]
 
 

@@ -15,6 +15,7 @@ python run.py                 # menu: pick any demo
 2.7 MB real-subject fixture):
 ```bash
 python reproduce_fast.py                       # or: make reproduce-fast
+python ssvep/selftest_live.py                  # exercise the LIVE LSL decode path via a mock outlet (no headset; needs pylsl)
 ```
 **Reproduce every real headline number** (asserts each within ±0.04 of the committed value):
 ```bash

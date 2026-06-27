@@ -3,6 +3,7 @@ P300 / motor-imagery / MRCP. Few parameters -> trains on hackathon-sized data.
 Requires torch. Pure-numpy pipelines (CSP/Riemann/xDAWN) remain the no-torch path.
 """
 from __future__ import annotations
+import os
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
@@ -64,6 +65,13 @@ def _fit_eval(Xtr, ytr, Xte, yte, epochs=60, lr=1e-3, seed=0):
 def evaluate(X, y, folds=5, epochs=60):
     if not _HAS_TORCH:
         return {"method": "EEGNet", "error": "torch not installed"}
+    # determinism so the committed EEGNet number is reproducible across runs/hardware
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    torch.manual_seed(0)
+    try:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+    except Exception:
+        pass
     X = np.asarray(X, float); y = np.asarray(y)
     # per-trial z-score (stabilises training)
     X = (X - X.mean((1, 2), keepdims=True)) / (X.std((1, 2), keepdims=True) + 1e-6)
