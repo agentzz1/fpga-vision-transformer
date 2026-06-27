@@ -16,15 +16,15 @@ public EEG**, and we picked every method by **measured real-data performance, no
 | Paradigm | Real dataset (8-ch where possible) | Result |
 |---|---|---|
 | **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class, n=9 | FBCCA **0.93** → **TRCA 0.99** (0/~100-s train) |
-| Motor Imagery | PhysioNet, 8-ch 0.61 vs 64-ch 0.70 (CSP) | CSP/Riemann robust on small data |
-| P300 speller | BNCI2014-009 (n=2) | xDAWN+LDA **AUC 0.96** (leak-free CV) |
+| Motor Imagery | PhysioNet, n=8, 8-ch 0.64 ≈ 64-ch 0.65 (CSP) | 8 ch keep the full MI signal |
+| P300 speller | BNCI2014-009 (n=5) | xDAWN+LDA **AUC 0.94 ± 0.05** (leak-free CV) |
 
 ## Three insights that show depth (judges reward these)
-1. **8 channels retain most of the MI signal** for this task — the signal is sensorimotor/occipital,
-   which the Unicorn has. The headset isn't the bottleneck; trial count is.
+1. **8 channels retain the full MI signal** here (8-ch 0.64 ≈ 64-ch 0.65, n=8) — the signal is
+   sensorimotor/occipital, which the Unicorn has. The headset isn't the bottleneck; trial count is.
 2. **The Unicorn's spectral signal is reliable where its ERPs aren't** (Pontifex 2023),
    which is exactly *why* we chose SSVEP over P300/readiness-potential for live control.
-3. **On hackathon-sized data, simpler wins** — CSP/Riemann beat FBCSP/EEGNet at 45 trials;
+3. **On hackathon-sized data, the deep net loses** — EEGNet is worst at 45 trials, CSP/Riemann/FBCSP tie;
    we auto-select method by data size. We measured this; we didn't guess.
 
 ## What we built (turnkey, `verify_all.py` = ALL GREEN)

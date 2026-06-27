@@ -27,9 +27,11 @@ Why SSVEP: the Unicorn's spectral signal is reliable where its ERPs aren't
 classification on the Unicorn during gameplay).
 
 **📊 Data Analysis — point at a `.mat`, get SOTA** (`data_analysis/run_analysis.py`):
-robust loader auto-detects layout; runs the right pipeline. Methods + synthetic ablation:
+robust loader auto-detects layout; runs the right pipeline. **Ablation on SYNTHETIC data
+(these 1.00s only show the code separates a clean signal — NOT real accuracy; for real
+numbers see `data_analysis/REAL_BENCHMARK.md`: MI 8-ch 0.64, P300 8-ch AUC 0.94):**
 
-| Paradigm | Method | Acc | AUC |
+| Paradigm | Method | Acc (synthetic) | AUC |
 |---|---|---|---|
 | Motor Imagery | raw+LDA (baseline) | 0.46 | - |
 | Motor Imagery | CSP + LDA | 1.00 | - |
