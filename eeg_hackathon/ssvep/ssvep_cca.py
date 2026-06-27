@@ -87,13 +87,13 @@ def itr_bits_per_min(n_classes: int, accuracy: float, t_select_s: float) -> floa
 
 # --------------------------- synthetic validation -------------------------- #
 def synth_ssvep(freq: float, dur_s: float, n_ch: int = 4, snr: float = 0.6,
-                fs: int = FS, rng=None) -> np.ndarray:
+                fs: int = FS, rng=None, phase=None) -> np.ndarray:
     """Synthetic occipital SSVEP at `freq` (+harmonics) in 1/f noise -> (ch, n)."""
     rng = rng or np.random.default_rng()
     n = int(dur_s * fs); t = np.arange(n) / fs
     sig = np.zeros((n_ch, n))
     for h, amp in zip((1, 2, 3), (1.0, 0.5, 0.3)):
-        ph = rng.uniform(0, 2 * np.pi)
+        ph = rng.uniform(0, 2 * np.pi) if phase is None else h * phase
         sig += amp * np.sin(2 * np.pi * h * freq * t + ph)[None, :]
     noise = rng.standard_normal((n_ch, n))
     # pink-ish noise
