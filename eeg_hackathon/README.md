@@ -1,14 +1,21 @@
 # EEG Hackathon Kit — Unicorn Hybrid Black (BR41N.IO / Zeiss "EEG Mind Control")
 
-Turnkey kit to win across all three BR41N.IO categories. **Verified ALL GREEN** via
-`python verify_all.py`. No hardware? Everything runs on a synthetic fallback.
+Turnkey kit to win across all three BR41N.IO categories. **Code paths verified ALL GREEN**
+on a synthetic smoke test (`python verify_all.py`); **accuracy verified on REAL public
+EEG** (Nakanishi2015, PhysioNet, BNCI2014-009 — see `data_analysis/REAL_BENCHMARK.md` and
+the committed `RUN_LOG_*.txt`). No hardware? Everything runs on a synthetic fallback.
 
 ## 60-second start
 ```bash
 pip install -r requirements.txt
-python verify_all.py     # proves every component runs (ALL GREEN)
-python run.py            # menu: pick any demo
+python verify_all.py          # fast SYNTHETIC smoke test — proves every code path runs
+python verify_all.py --real   # ALSO run the REAL public-data benchmarks (downloads; minutes)
+pip install -r requirements-real.txt   # needed for --real (moabb, torch)
+python run.py                 # menu: pick any demo
 ```
+**Synthetic vs real:** `verify_all.py` (no args) only proves the code runs end-to-end —
+synthetic 100%s are not evidence. The numbers to quote come from the real-data benchmarks
+(`--real`) and are recorded in `REAL_BENCHMARK.md` / `RUN_LOG_*.txt`.
 Read **DEMO_DAY.md** for the step-by-step demo-day flow + the 90-second judge pitch.
 
 ## What's inside (all verified)

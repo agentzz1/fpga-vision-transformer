@@ -14,8 +14,8 @@ public EEG**, and we picked every method by **measured real-data performance, no
 ## Why we win — evidence, not claims (all on REAL public datasets)
 | Paradigm | Real dataset (8-ch where possible) | Result |
 |---|---|---|
-| **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class | FBCCA 0.83 → **TRCA 0.98**, 0/60-s train |
-| Motor Imagery | PhysioNet, **8-ch = 64-ch** (0.64 vs 0.65) | CSP/Riemann robust on small data |
+| **SSVEP (our game)** | Nakanishi2015, 8-ch, 12-class | FBCCA 0.82 → **TRCA 0.98**, 0/60-s train |
+| Motor Imagery | PhysioNet, 8-ch 0.61 vs 64-ch 0.70 (CSP) | CSP/Riemann robust on small data |
 | P300 speller | BNCI2014-009 | xDAWN+LDA **AUC 0.96** |
 
 ## Three insights that show depth (judges reward these)

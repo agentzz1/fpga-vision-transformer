@@ -57,12 +57,20 @@ def run(synthetic=True, win_s=2.0, model_path=None):
     import pygame
     pygame.init()
     W = 560; H = 760
-    screen = pygame.display.set_mode((W, H))
+    try:
+        screen = pygame.display.set_mode((W, H), vsync=1)
+    except Exception:
+        screen = pygame.display.set_mode((W, H))
+    try:
+        refresh = int(round(pygame.display.get_current_refresh_rate()))
+    except Exception:
+        refresh = 60
     pygame.display.set_caption("SSVEP 2048 — control with your brain")
     font = pygame.font.SysFont("arial", 40, bold=True)
     big = pygame.font.SysFont("arial", 28, bold=True)
     small = pygame.font.SysFont("arial", 20)
     clock = pygame.time.Clock()
+    if "refresh" not in dir() or not refresh: refresh = 60
     game = Game2048()
     model = None
     if model_path:
@@ -76,7 +84,7 @@ def run(synthetic=True, win_s=2.0, model_path=None):
     gaze_idx = [0]          # which arrow the user is "looking at" (synthetic demo: cycle)
     dwell = deque(maxlen=2)  # LIVE: require 2 consecutive confident agreeing windows
     last_decode = [0.0]; scores = [np.zeros(4)]
-    frame = 0; refresh = 60
+    frame = 0
 
     def draw_board():
         for r in range(SIZE):
@@ -89,12 +97,13 @@ def run(synthetic=True, win_s=2.0, model_path=None):
                     t = font.render(str(v), True, (119,110,101) if v<=4 else (249,246,242))
                     screen.blit(t, t.get_rect(center=(x+cell//2, y+cell//2)))
 
-    def draw_flickers(t):
+    def draw_flickers(frame):
         # 4 flicker bars at the edges, frequency per arrow
         bars = {0:(W//2-40,10,80,30), 1:(W//2-40,H-40,80,30),
                 2:(10,top+board_px//2-40,30,80), 3:(W-40,top+board_px//2-40,30,80)}
         for i,(f,rect) in enumerate(zip(FREQS,[bars[0],bars[1],bars[2],bars[3]])):
-            on = np.sin(2*np.pi*f*t) > 0
+            half = max(1, int(round(refresh / (2.0*f))))   # frames per half-cycle (refresh-locked)
+            on = (frame // half) % 2 == 0
             col = (255,255,255) if on else (40,40,40)
             if i == gaze_idx[0]: pygame.draw.rect(screen,(90,160,255),
                                  (rect[0]-3,rect[1]-3,rect[2]+6,rect[3]+6),border_radius=4)
@@ -141,7 +150,7 @@ def run(synthetic=True, win_s=2.0, model_path=None):
         sc = scores[0]; sct = small.render("CCA: " + "  ".join(
             f"{ARROWS[i]}={sc[i]:.2f}" for i in range(4)), True, (150,140,130))
         screen.blit(sct, (margin, 100))
-        draw_board(); draw_flickers(frame/refresh)
+        draw_board(); draw_flickers(frame)   # integer frame count -> refresh-locked parity
         if not game.can_move():
             go = big.render("GAME OVER", True, (200,60,60)); screen.blit(go,(margin,H-40))
         pygame.display.flip(); clock.tick(refresh); frame += 1

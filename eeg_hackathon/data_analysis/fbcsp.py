@@ -58,8 +58,8 @@ if __name__ == "__main__":
     import mi_pipeline
     print("FBCSP vs CSP on REAL PhysioNet MI (Unicorn-8ch), fs=160:\n")
     for s in (1, 2, 3):
-        ch, X, y = load_subject(s)
+        ch, X, y, fs = load_subject(s)
         _, X8 = subset(ch, X, UNICORN8)
-        csp = mi_pipeline.evaluate(X8, y, fs=160)["acc"]
-        fbc = evaluate(X8, y, fs=160)["acc"]
+        csp = mi_pipeline.evaluate(X8, y, fs=fs)["acc"]
+        fbc = evaluate(X8, y, fs=fs)["acc"]
         print(f"  S{s:03d}: CSP={csp:.2f}  FBCSP={fbc:.2f}  (+{fbc-csp:+.2f})")

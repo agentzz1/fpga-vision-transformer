@@ -42,10 +42,12 @@ near-perfect Unicorn analog. Decoder: **training-free FBCCA** (no calibration).
 | Subject | Targets | FBCCA acc | Chance |
 |---|---|---|---|
 | S1–S3 mean | 12 | **0.82** | 0.08 |
-| S3 (best) | 12 | 0.98 | 0.08 |
-| S2 (typical) | 12 | 0.69 | 0.08 |
+| S3 (best) | 12 | 0.97 | 0.08 |
+| S2 (typical) | 12 | 0.70 | 0.08 |
 
-**Why this matters:** 81% on a *12-class* problem with *zero training* on *8 channels* is
+*(Single source of truth: `ssvep/RUN_LOG_ssvep_trca.txt`, the test-split FBCCA column.)*
+
+**Why this matters:** 82% on a *12-class* problem with *zero training* on *8 channels* is
 strong. Our hackathon game uses only **4 targets** (2048 arrows) → accuracy is materially
 **higher** than the 12-class number, and an optional 60-s **TRCA** calibration raises it
 further. This is the headset-realistic, real-data evidence behind the SSVEP→2048 flagship.
@@ -57,19 +59,24 @@ Reproduce: `python ssvep/real_ssvep_benchmark.py`  (downloads Nakanishi2015 via 
 # REAL-data validation — P300 (BNCI2014-009 speller)
 
 Real P300 speller, xDAWN + shrinkage-LDA, within-subject (AUC; classes ~1:5 imbalanced).
+All 8 Unicorn channels (Fz, C3, Cz, C4, Pz, PO7, Oz, PO8) exist in BNCI2014-009, so the
+**8-ch subset is exact** — and the P300 sources (Pz/Cz/PO7/PO8) all live in that montage,
+so the Unicorn-8 number is **not worse** than the full 16-ch cap.
 
-| Subject | AUC | Acc |
-|---|---|---|
-| S1 | 0.952 | 0.915 |
-| S2 | 0.963 | 0.935 |
+| Subject | 16-ch AUC | **Unicorn-8ch AUC** | 8-ch Acc |
+|---|---|---|---|
+| S1 | 0.952 | **0.956** | 0.923 |
+| S2 | 0.963 | **0.968** | 0.939 |
+| **mean** | **0.958** | **0.962** | 0.93 |
 
-AUC ~0.96 on real data confirms the P300 pipeline is SOTA-competitive. Reproduce:
+Unicorn-8ch AUC ~0.96 on real data confirms the P300 pipeline is SOTA-competitive on the
+*actual* headset montage (source: `RUN_LOG_p300.txt`). Reproduce:
 `python data_analysis/real_p300_benchmark.py`.
 
 ## Summary — all three paradigms validated on REAL public data
 | Paradigm | Dataset | Metric | Result |
 |---|---|---|---|
-| SSVEP (flagship) | Nakanishi2015 (8-ch) | acc, 12-class, 0-train | **0.81** |
+| SSVEP (flagship) | Nakanishi2015 (8-ch) | acc, 12-class, 0-train | **0.82** |
 | Motor Imagery | PhysioNet eegmmidb (8-ch subset) | acc, 2-class | **0.61** |
 | P300 | BNCI2014-009 | AUC | **0.96** |
 
@@ -85,12 +92,12 @@ real datasets, honest numbers, headset-realistic (8-ch) where possible.
 | Subject | FBCCA (0-train) | TRCA (calibrated) | Δ |
 |---|---|---|---|
 | S1 | 0.78 | 1.00 | +0.22 |
-| S2 | 0.73 | 0.95 | +0.22 |
+| S2 | 0.70 | 0.95 | +0.25 |
 | S3 | 0.97 | 1.00 | +0.03 |
-| **mean** | **0.83** | **0.98** | **+0.15** |
+| **mean** | **0.82** | **0.98** | **+0.16** |
 
 **Flagship recommendation (empirical):** run **TRCA** with a 60-s calibration → ~0.98 on
 12-class real 8-ch SSVEP (→ near-perfect for 4-class 2048). Keep **FBCCA** as the instant
-zero-training fallback (0.83) for "judge puts on the cap, it works immediately." This is
+zero-training fallback (0.82) for "judge puts on the cap, it works immediately." This is
 the exact A/B I said real data would settle — and it did. Reproduce:
 `python ssvep/real_ssvep_trca.py`.

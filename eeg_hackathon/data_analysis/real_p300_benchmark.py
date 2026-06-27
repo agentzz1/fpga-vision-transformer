@@ -1,5 +1,6 @@
 """real_p300_benchmark.py — validate xDAWN+LDA on a REAL P300 speller dataset
-(moabb BNCI2014-009), incl. a Unicorn-8ch subset. Reports AUC (imbalanced classes).
+(moabb BNCI2014-009). Reports AUC for the FULL 16-ch montage AND for the actual
+Unicorn-8ch subset (the headset-realistic number). Classes are ~1:5 imbalanced → AUC.
 """
 from __future__ import annotations
 import os, sys, warnings
@@ -8,23 +9,36 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import p300_pipeline
 
+# Canonical Unicorn montage. All 8 exist in BNCI2014-009 (verified), so the
+# subset is exact, not nearest-neighbour.
 UNICORN8 = ["Fz", "C3", "Cz", "C4", "Pz", "PO7", "Oz", "PO8"]
 
 
-def run(subjects=(1, 2)):
+def _binc(y):
+    return np.asarray([1 if str(v).lower().startswith("t") else 0 for v in y])
+
+
+def run(subjects=(1, 2), cap=1500):
     from moabb.datasets import BNCI2014_009
     from moabb.paradigms import P300
     ds = BNCI2014_009()
-    para = P300(resample=128)
-    print("BNCI2014-009 — REAL P300 speller, xDAWN+shrinkLDA (within-subject):\n")
+    para_full = P300(resample=128)
+    para_8 = P300(resample=128, channels=UNICORN8)  # <-- actually subset to 8
+    print("BNCI2014-009 — REAL P300 speller, xDAWN+shrinkLDA (within-subject):")
+    print("  reporting FULL 16-ch vs Unicorn-8ch subset (the headset-realistic number)\n")
+    f_aucs, e_aucs = [], []
     for s in subjects:
-        X, y, meta = para.get_data(ds, [s])
-        y = np.asarray([1 if str(v).lower().startswith("t") else 0 for v in y])
-        ch = list(meta.columns) if hasattr(meta, "columns") else None
-        # X already (trials, ch, T); subsample is best-effort by index if names unknown
-        r_all = p300_pipeline.evaluate(X[:1500], y[:1500], fs=128)
-        print(f"  S{s}: n={min(len(y),1500)} (target={int(y[:1500].sum())}) "
-              f"AUC={r_all['auc']:.3f} acc={r_all['acc']:.3f}")
+        Xf, yf, _ = para_full.get_data(ds, [s]); yf = _binc(yf)
+        Xe, ye, _ = para_8.get_data(ds, [s]); ye = _binc(ye)
+        rf = p300_pipeline.evaluate(Xf[:cap], yf[:cap], fs=128)
+        re = p300_pipeline.evaluate(Xe[:cap], ye[:cap], fs=128)
+        f_aucs.append(rf["auc"]); e_aucs.append(re["auc"])
+        print(f"  S{s}: n={min(len(yf),cap)} (target={int(yf[:cap].sum())})  "
+              f"16-ch AUC={rf['auc']:.3f}  |  Unicorn-8ch AUC={re['auc']:.3f} "
+              f"acc={re['acc']:.3f}")
+    print(f"\n  mean: 16-ch AUC={np.mean(f_aucs):.3f}  |  "
+          f"Unicorn-8ch AUC={np.mean(e_aucs):.3f}  "
+          f"(8-ch is the number to quote for the Unicorn)")
 
 
 if __name__ == "__main__":

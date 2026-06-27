@@ -1,11 +1,20 @@
-"""verify_all.py — one-command readiness check. Runs EVERY no-hardware component
-and prints a GREEN/RED report. If all green, the kit is demo-ready.
+"""verify_all.py — one-command readiness check.
 
-    python verify_all.py
+Default (no args): runs EVERY no-hardware component on SYNTHETIC signals and prints
+a GREEN/RED report. This proves the code paths run end-to-end; it does NOT prove
+accuracy on real EEG (synthetic 100%s mean nothing on their own).
+
+    python verify_all.py            # fast synthetic smoke test (seconds, no network)
+    python verify_all.py --real     # ALSO run the REAL public-data benchmarks
+                                    # (downloads via MOABB/MNE; minutes; needs net).
+
+The real numbers (the ones to quote) live in the committed run logs:
+  ssvep/RUN_LOG_ssvep_trca.txt, data_analysis/RUN_LOG_p300.txt, and REAL_BENCHMARK.md.
 """
 import os, sys, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+REAL = "--real" in sys.argv
 for sub in ("ssvep", "app", "canabalt", "data_analysis"):
     sys.path.insert(0, os.path.join(HERE, sub))
 
@@ -73,11 +82,29 @@ for n, f in [("SSVEP decoder", _ssvep), ("EEGNet", _eegnet), ("Baseline", _basel
              ("Riemannian", _riemann), ("P300 speller", _p300), ("Focus trigger", _focus)]:
     check(n, f)
 
-print("\n==== EEG HACKATHON KIT — READINESS ====")
+print("\n==== EEG HACKATHON KIT — READINESS (SYNTHETIC smoke test) ====")
 allok = True
 for name, ok, detail in results:
     print(f"  [{'GREEN' if ok else 'RED  '}] {name:16} {detail}")
     allok &= ok
 print("=" * 42)
-print("ALL GREEN — kit is demo-ready." if allok else "SOME RED — see above.")
+print("ALL GREEN (synthetic) — code paths run end-to-end."
+      if allok else "SOME RED — see above.")
+print("Note: these are SYNTHETIC checks. Real-EEG numbers: see REAL_BENCHMARK.md /"
+      " RUN_LOG_*.txt, or run `python verify_all.py --real`.")
+
+if REAL:
+    print("\n==== REAL public-data benchmarks (downloads via MOABB/MNE) ====")
+    real_scripts = [
+        ("SSVEP FBCCA/TRCA", "ssvep/real_ssvep_trca.py"),
+        ("Motor Imagery",    "data_analysis/real_mi_benchmark.py"),
+        ("P300 speller",     "data_analysis/real_p300_benchmark.py"),
+    ]
+    for name, rel in real_scripts:
+        print(f"\n--- {name} ({rel}) ---")
+        rc = subprocess.call([sys.executable, os.path.join(HERE, rel)])
+        if rc != 0:
+            print(f"  [RED] {name} exited {rc}")
+            allok = False
+
 sys.exit(0 if allok else 1)
