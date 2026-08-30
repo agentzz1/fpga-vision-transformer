@@ -19,8 +19,13 @@ GHDLFLAGS := $(STD) --workdir=$(WORKDIR)
 RTL_DIR := ../rtl
 TB_DIR  := .
 
-# RTL sources in dependency order (packages first).
+# Package first: everything else compiles against it.
 RTL_SRC := \
+	$(RTL_DIR)/vit_pkg.vhd \
+	$(RTL_DIR)/pe_array.vhd \
+	$(RTL_DIR)/act_ram.vhd \
+	$(RTL_DIR)/weight_rom.vhd \
+	$(RTL_DIR)/gemm_seq.vhd \
 	$(RTL_DIR)/uart_rx.vhd \
 	$(RTL_DIR)/uart_tx.vhd \
 	$(RTL_DIR)/seg7_display.vhd
@@ -31,7 +36,7 @@ TB_TOPS := $(basename $(notdir $(TB_SRC)))
 # Simulations stop at this virtual time if a testbench never terminates itself.
 STOP_TIME ?= 20ms
 
-.PHONY: all analyse run clean wave list $(TB_TOPS)
+.PHONY: all analyse run clean wave list vectors $(TB_TOPS)
 
 all: run
 
@@ -62,7 +67,7 @@ run: analyse
 	for tb in $(TB_TOPS); do \
 		echo "=== $$tb ==="; \
 		$(GHDL) -e $(GHDLFLAGS) -o $(WORKDIR)/$$tb $$tb || { fail=1; continue; }; \
-		( cd $(WORKDIR) && $(GHDL) -r $(STD) --workdir=. $$tb --stop-time=$(STOP_TIME) ) \
+		$(GHDL) -r $(GHDLFLAGS) $$tb --stop-time=$(STOP_TIME) \
 			|| { echo "*** $$tb FAILED"; fail=1; }; \
 	done; \
 	if [ $$fail -ne 0 ]; then echo "SOME TESTBENCHES FAILED"; exit 1; fi; \
@@ -71,20 +76,23 @@ run: analyse
 # Run a single testbench by name: make tb_uart_loopback
 $(TB_TOPS): analyse
 	$(GHDL) -e $(GHDLFLAGS) -o $(WORKDIR)/$@ $@
-	cd $(WORKDIR) && $(GHDL) -r $(STD) --workdir=. $@ --stop-time=$(STOP_TIME)
+	$(GHDL) -r $(GHDLFLAGS) $@ --stop-time=$(STOP_TIME)
 
 # Waveform dump for the testbench named in TB=<name>
 wave: analyse
 	@test -n "$(TB)" || { echo "usage: make wave TB=tb_uart_loopback"; exit 1; }
 	$(GHDL) -e $(GHDLFLAGS) -o $(WORKDIR)/$(TB) $(TB)
-	cd $(WORKDIR) && $(GHDL) -r $(STD) --workdir=. $(TB) \
-		--wave=$(TB).ghw --stop-time=$(STOP_TIME)
-	$(GTKWAVE) $(WORKDIR)/$(TB).ghw &
+	$(GHDL) -r $(GHDLFLAGS) $(TB) --wave=$(TB).ghw --stop-time=$(STOP_TIME)
+	$(GTKWAVE) $(TB).ghw &
 
 list:
 	@echo "RTL sources:"; for f in $(RTL_SRC); do echo "  $$f"; done
 	@echo "testbenches:"; for t in $(TB_TOPS); do echo "  $$t"; done
 
+# Regenerate the simulation vectors the testbenches read.
+vectors:
+	cd ../sw && python3 gen_gemm_vectors.py --k 64 --n 64 --shift 7 --scale 24
+
 clean:
-	rm -rf $(WORKDIR)
+	rm -rf $(WORKDIR) work_*
 	rm -f *.cf *.o *.ghw *.vcd
