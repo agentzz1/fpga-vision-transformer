@@ -195,9 +195,29 @@ QAT training, int8 export, golden-model evaluation, and ROM image generation.
 
 - `vit_core.vhd` — the controller that chains the eight matmul stages together
   with the elementwise, softmax and LayerNorm passes between them. Every unit it
-  would sequence is verified; the sequencing itself is not written. It also
-  needs a 16×16 transpose buffer ahead of the softmax, because the score matrix
-  is stored feature-major but softmax normalises along the other axis.
+  would sequence is verified; the sequencing itself is not written.
+
+  Working through the integration surfaced one real constraint that is not
+  obvious from the block diagram, and that whoever writes this next needs to
+  know. The array computes `out[m][n] = Σₖ a[m][k]·w[k][n]`, where the `a`
+  operand is one feature-major word and the `w` operand must come from **one**
+  word sliced down to the tile's four channels. The two attention products
+  behave differently under that rule:
+
+  | product | shape (M,K,N) | `w` operand | fits? |
+  |---|---|---|---|
+  | `Q·Kᵀ` | 16, 64, 16 | `K[j][d]` — `j` varies with the tile, `d = k` picks the word | yes, one word sliced |
+  | `P·V` | 16, 16, 64 | `V[j][d]` — `d` varies with the tile, `j = k` picks the *byte* | **no** — spans four words |
+
+  So `V` has to be token-major while the QKV projection that produces it writes
+  feature-major. The cheap fix is not a separate transpose pass: `gemm_seq`
+  already buffers a tile before writeback, so buffering four tiles (a 16×16
+  byte array, 256 bytes) and writing them token-major transposes `V` for free,
+  with no extra cycles. The same buffer serves the softmax, which normalises
+  along the axis the score matrix is *not* stored along.
+
+  This does mean touching a currently-verified module, which is why it was left
+  rather than rushed.
 - The Basys 3 top level, and Vivado synthesis. **No resource or timing numbers
   here come from synthesis** — Vivado is not installed in this environment. The
   design intent is roughly 65 of 90 DSPs (64 for the array, one for the
