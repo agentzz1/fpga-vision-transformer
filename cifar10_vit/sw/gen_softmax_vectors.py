@@ -28,7 +28,7 @@ particular softmax are all in the exponent index arithmetic:
     the tie-breaking in the row-max search and the uniform output it produces.
 
 Usage:  python3 gen_softmax_vectors.py [output_path]
-Default output: ../sim/work_softmax/softmax_vectors.txt
+Default output: ../sim/vectors/softmax_vectors.txt
 """
 from __future__ import annotations
 
@@ -190,7 +190,7 @@ def magnitude_coverage(rows) -> set[int]:
 
 def main() -> int:
     here = os.path.dirname(os.path.abspath(__file__))
-    default = os.path.join(here, "..", "sim", "work_softmax",
+    default = os.path.join(here, "..", "sim", "vectors",
                            "softmax_vectors.txt")
     out_path = sys.argv[1] if len(sys.argv) > 1 else default
     out_path = os.path.normpath(out_path)

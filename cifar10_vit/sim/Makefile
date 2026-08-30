@@ -62,7 +62,7 @@ analyse: $(WORKDIR)
 # `severity failure`, which makes ghdl -r exit non-zero, so a broken design
 # fails the build rather than printing a green line.
 # ---------------------------------------------------------------------------
-run: analyse
+run: vectors analyse
 	@fail=0; \
 	for tb in $(TB_TOPS); do \
 		echo "=== $$tb ==="; \
@@ -74,7 +74,7 @@ run: analyse
 	echo "ALL TESTBENCHES PASSED"
 
 # Run a single testbench by name: make tb_uart_loopback
-$(TB_TOPS): analyse
+$(TB_TOPS): vectors analyse
 	$(GHDL) -e $(GHDLFLAGS) -o $(WORKDIR)/$@ $@
 	$(GHDL) -r $(GHDLFLAGS) $@ --stop-time=$(STOP_TIME)
 
@@ -89,9 +89,16 @@ list:
 	@echo "RTL sources:"; for f in $(RTL_SRC); do echo "  $$f"; done
 	@echo "testbenches:"; for t in $(TB_TOPS); do echo "  $$t"; done
 
-# Regenerate the simulation vectors the testbenches read.
-vectors:
+# Regenerate the simulation vectors the testbenches read. They are derived
+# from the Python golden model rather than checked in, so the reference can
+# never go stale relative to the code that defines it.
+VECTORS := vectors/gemm_meta.txt vectors/softmax_vectors.txt
+
+vectors: $(VECTORS)
+
+$(VECTORS):
 	cd ../sw && python3 gen_gemm_vectors.py --k 64 --n 64 --shift 7 --scale 24
+	cd ../sw && python3 gen_softmax_vectors.py
 
 clean:
 	rm -rf $(WORKDIR) work_*
