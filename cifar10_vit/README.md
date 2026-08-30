@@ -182,6 +182,7 @@ Verified in GHDL simulation, bit-exact against the Python golden model:
 | `gemm_seq.vhd` + memories | A complete matmul: 1,024 outputs bit-exact vs `matmul_q`, in 1,047 cycles against an ideal of 1,024 |
 | `softmax.vhd` | 7,712 values across 482 adversarial vectors (constant rows, single spikes, rows straddling the magnitude clamp, a sweep covering all 256 magnitudes) |
 | `layernorm.vhd` | 32,768 values across 32 cases (zero variance, both int8 extremes, outliers, mostly-negative rows, variances either side of a power of two); all seven reachable shift values exercised |
+| `elem_op.vhd` | 5,120 values across all four modes: positional add, residual add, GELU (sweeping all 256 table entries), and global average pooling |
 | `uart_rx/tx.vhd` | Loopback, all ten test bytes bit-identical |
 
 Each testbench was checked for teeth — removing the weight file or perturbing a
@@ -193,11 +194,10 @@ QAT training, int8 export, golden-model evaluation, and ROM image generation.
 **Not yet built:**
 
 - `vit_core.vhd` — the controller that chains the eight matmul stages together
-  with the elementwise operations between them. The pieces it sequences are all
-  verified; the sequencing is not written.
-- `elem_op.vhd` — positional-embedding add, residual adds, GELU lookup, and
-  global average pooling. All are streaming byte operations over the same
-  feature-major words; the GELU table is already generated into `vit_pkg.vhd`.
+  with the elementwise, softmax and LayerNorm passes between them. Every unit it
+  would sequence is verified; the sequencing itself is not written. It also
+  needs a 16×16 transpose buffer ahead of the softmax, because the score matrix
+  is stored feature-major but softmax normalises along the other axis.
 - The Basys 3 top level, and Vivado synthesis. **No resource or timing numbers
   here come from synthesis** — Vivado is not installed in this environment. The
   design intent is roughly 65 of 90 DSPs (64 for the array, one for the
@@ -215,6 +215,7 @@ rtl/    vit_pkg.vhd      generated: dimensions, fixed-point constants, tables
         gemm_seq.vhd     drives one matmul end to end
         act_ram.vhd      feature-major activation memory
         weight_rom.vhd   pre-interleaved weight store
+        elem_op.vhd      positional/residual add, GELU, average pooling
         softmax.vhd      integer softmax
         layernorm.vhd    leading-one-detector LayerNorm
         uart_rx/tx.vhd   115200 8N1

@@ -52,6 +52,12 @@ package vit_pkg is
     constant TOTAL_PARAM_BYTES : natural := 46986;
     constant TOTAL_GEMM_CYCLES : natural := 11968;  -- PE-array cycles per image
 
+    -- ── Elementwise operation selectors (elem_op.vhd) ───────────
+    constant ELEM_POS  : std_logic_vector(1 downto 0) := "00";
+    constant ELEM_ADD  : std_logic_vector(1 downto 0) := "01";
+    constant ELEM_GELU : std_logic_vector(1 downto 0) := "10";
+    constant ELEM_GAP  : std_logic_vector(1 downto 0) := "11";
+
     -- ── Types ───────────────────────────────────────────────────
     subtype q8_t   is signed(7 downto 0);
     subtype acc_t  is signed(31 downto 0);

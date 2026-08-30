@@ -26,6 +26,10 @@ RTL_SRC := \
 	$(RTL_DIR)/act_ram.vhd \
 	$(RTL_DIR)/weight_rom.vhd \
 	$(RTL_DIR)/gemm_seq.vhd \
+	$(RTL_DIR)/softmax.vhd \
+	$(RTL_DIR)/layernorm.vhd \
+	$(RTL_DIR)/elem_op.vhd \
+	$(RTL_DIR)/stage_map.vhd \
 	$(RTL_DIR)/uart_rx.vhd \
 	$(RTL_DIR)/uart_tx.vhd \
 	$(RTL_DIR)/seg7_display.vhd
@@ -92,13 +96,16 @@ list:
 # Regenerate the simulation vectors the testbenches read. They are derived
 # from the Python golden model rather than checked in, so the reference can
 # never go stale relative to the code that defines it.
-VECTORS := vectors/gemm_meta.txt vectors/softmax_vectors.txt
+VECTORS := vectors/gemm_meta.txt vectors/softmax_vectors.txt \
+	vectors/layernorm_vectors.txt vectors/elem_vectors.txt
 
 vectors: $(VECTORS)
 
 $(VECTORS):
 	cd ../sw && python3 gen_gemm_vectors.py --k 64 --n 64 --shift 7 --scale 24
 	cd ../sw && python3 gen_softmax_vectors.py
+	cd ../sw && python3 gen_layernorm_vectors.py
+	cd ../sw && python3 gen_elem_vectors.py
 
 clean:
 	rm -rf $(WORKDIR) work_*
